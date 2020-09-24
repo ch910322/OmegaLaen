@@ -1,0 +1,10 @@
+external function string 60 UserDefined(string,string);
+external function Boolean HasCustomerSearchKey();
+external function Boolean HasCategories();
+external function Boolean HasDepartments();
+external function Boolean HasStandardCommunicator();
+external function Boolean CUVATNrColumn;
+external function Boolean HasLimitedAccess();
+external function Boolean HasCustomerStatusReport();
+external outer function Boolean HasB2BCreateOffer();
+

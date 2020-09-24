@@ -1,0 +1,195 @@
+external function val GetCredManItemValue(record IVVc,string,Boolean);
+external inner procedure SumNoDownPay(record IVVc,var val,var val,var val,var val,var val,var val);
+external function string 255 GetCredManNr(Longint);
+external procedure GetHiddenInvoiceValues(record IVVc,var val,var val);
+external function val GetCustomerOpenAmount(string,record IVVc);
+external inner procedure ValToText(val,Integer,string,string,var string);
+external inner procedure MailTextRow(string,string,string,var row MailTextVc,var Integer);
+external inner function string 255 StrReplace(string,string,string);
+
+global
+function Boolean Ext_SkipInvoiceRow(record IVVc IVr,row IVVc IVrw,Integer i)
+begin
+  record CMInvoicingBlock CIb;
+  Boolean res;
+
+  BlockLoad(CIb);
+
+  if (CIb.DetailedInvoice==1) then begin
+    if (i<3 or (IVr.InvType==kInvoiceTypeCredit and i<4)) then begin
+      res = true;
+    end;
+  end;
+
+  Ext_SkipInvoiceRow = res;
+  return;
+end;
+
+global
+function Boolean Ext_GetPDFInvoiceName(record IVVc IVr,var string fname) 
+begin
+  Boolean res;
+
+  res = true;
+  if (nonblank(IVr.OfficialSerNr)) then begin
+    fname = USetStr(1808) & StrReplace(IVr.OfficialSerNr,"/","") & ".pdf";
+  end else begin
+    fname = USetStr(1808) & IVr.SerNr & ".pdf";
+  end;
+  Ext_GetPDFInvoiceName = res;
+  return;
+end;
+
+procedure FillInvoiceData(record IVVc IVr,var record RcVc RepSpec)
+begin
+  record CYBlock CompYear;
+  record CredManSetBlock CMb;
+  val t,v,t1,t2,t3,t4;
+  val abovehiddenbase,abovehiddenvat,openamount,topay2;
+  string 255 tstr;
+  string 255 credivno;
+  record IVVc IVCreditr;
+  Integer i,rwcnt;
+  row IVVc IVrw;
+  record UserVc Userr;
+  record CredManVc CredManr;
+
+  BlockLoad(CompYear);
+
+  SumNoDownPay(IVr,t,v,t1,t2,t3,t4);
+  GetHiddenInvoiceValues(IVr,abovehiddenbase,abovehiddenvat);
+
+  RepSpec.sStartDate = CurrentDate;//F_DATUM
+  RepSpec.f8 = GetCredManNr(IVr.CustCredManNr);//F_NUMMER
+  RepSpec.f9 = IVr.OfficialSerNr;
+  RepSpec.vals0 = t2;//F_ORGATTBETALA
+  RepSpec.f1 = IVr.CurncyCode;//F_VALUTA
+  RepSpec.long2 = IVr.SerNr;//F_FAKTURANUMMER
+  RepSpec.f2 = CompYear.emailAddr;//F_EGENEMAIL
+  RepSpec.f3 = CompYear.Phone;//F_EGENTEL
+  RepSpec.f4 = CompYear.CompName;//F_EGETNAMN
+  RepSpec.f5 = CompYear.OrgNr;//F_EGETORGNR
+  RepSpec.f6 = CompYear.VATNr;//F_EGETMOMSNR
+  RepSpec.f7 = CompYear.Addr0;//F_EGENADRESS
+  if (IVr.InvType==kInvoiceRowTypeCredit) then begin
+    RepSpec.vals4 = -(abovehiddenbase + abovehiddenvat);
+  end else begin
+    RepSpec.vals4 = abovehiddenbase + abovehiddenvat;
+  end;
+  RepSpec.f10 = IVr.Sum4;
+  openamount = GetCustomerOpenAmount(IVr.CustCode,IVr);
+  RepSpec.f11 = openamount;
+
+  BlockLoad(CMb);
+  RepSpec.vals1 = GetCredManItemValue(IVr,CMb.RateItem,true);
+  RepSpec.vals2 = GetCredManItemValue(IVr,CMb.InstalmentItem,true);
+  RepSpec.vals3 = GetCredManItemValue(IVr,CMb.LateFeeItem,true);
+  topay2 = openamount;
+  if (IVr.PayDate>=CurrentDate) then begin
+    topay2 = topay2 + RepSpec.vals4 + RepSpec.vals2;
+  end;
+  if (topay2<0) then begin
+    topay2 = 0;
+  end;
+  RepSpec.f12 = topay2;
+  ValToText(topay2,M4Val,IVr.CurncyCode,IVr.LangCode,tstr);
+  RepSpec.f13 = tstr;
+
+  rwcnt = MatRowCnt(IVr);
+  for (i=0;i<rwcnt;i=i+1) begin
+    MatRowGet(IVr,i,IVrw);
+    if (IVrw.stp==kInvoiceRowTypeCredit) then begin
+      credivno = IVrw.OrdRow;
+      IVCreditr.SerNr = IVrw.OrdRow;
+      if (ReadFirstMain(IVCreditr,1,true)) then begin  
+        if (nonblank(IVCreditr.OfficialSerNr)) then begin
+          credivno = IVCreditr.OfficialSerNr;
+        end;
+      end;
+      i = rwcnt;
+    end;
+  end;
+  RepSpec.f14 = credivno;
+  CredManr.SerNr = IVr.CustCredManNr;
+  if (ReadFirstMain(CredManr,1,true)) then begin
+    Userr.Code = CredManr.SalesMan;
+    if (ReadFirstMain(Userr,1,true)) then begin
+      RepSpec.f15 = Userr.Job;
+    end;
+  end;
+  
+  return;
+end;
+
+
+global
+updating function Boolean Ext_CreateInvoiceText(record IVVc IVr,row MailTextVc MTrw,var record MailVc IVMailr,record Mailr oldMailr)
+begin
+  record LTxtVc LTxtr;
+  Longint pos,l;
+  string 255 tstr;
+  record RcVc RepSpec;
+  area a;
+  record Attach2Vc Attachr;
+  record RLinkVc RLr;
+
+  FillInvoiceData(IVr,RepSpec);
+  
+  if (IVMailr.HtmlFlag==0) then begin
+    LTxtr.Code = MTrw.FirstTxt;
+    if (ReadFirstMain(LTxtr,1,true)) then begin
+      ParseTextField(a,LTxtr,RepSpec,"InvLtxtVcReplaceToken");
+      l = GetAreaLength(a);
+      pos = 0;
+      while (pos<l) begin
+        tstr = GetStringFromArea(a,pos,255);
+        AddToText(tstr,IVMailr); 
+        pos = pos+255;
+      end;
+    end;
+  end else begin
+    LTxtr.Code = MTrw.FirstTxt;
+    if (ReadFirstMain(LTxtr,1,true)) then begin
+    if (ReadRecordLink(IVMailr,1,Attachr,RLr)) begin
+      RecordRemove(RLr);
+    end;
+     CopyRecordLinks(LTxtr,IVMailr);
+     if (LTxtr.HtmlFlag==1) then begin
+        ParseHtmlField(IVMailr,RepSpec,"InvMailVcReplaceToken");
+      end;
+    end;
+  end;
+
+  SetAreaZeroSize(a);
+  RecordClear(LTxtr);
+  AddToText(MTrw.Header,LTxtr);
+  ParseTextField(a,LTxtr,RepSpec,"InvLtxtVcReplaceToken");
+  l = GetAreaLength(a);
+  pos = 0;
+  tstr = "";
+  while (pos<l) begin
+    tstr = GetStringFromArea(a,pos,255);
+    pos = pos+255;
+  end;
+  IVMailr.Header = tstr;
+
+  RecordUpdate(oldMailr,IVMailr,false);
+
+  Ext_CreateInvoiceText = true;
+  return;
+end;
+
+
+global
+function Boolean Ext_MailTextRow(record IVVc IVr,string filename,string registername,string language,var row MailTextVc resMTrw,var Integer IgnoreRecordDetails)
+begin
+  Boolean res;
+
+  if (IVr.InvType==kInvoiceTypeCredit) then begin
+    MailTextRow("IVCreditVc","",language,resMTrw,IgnoreRecordDetails);
+    res = true;
+  end;
+
+  Ext_MailTextRow = res;
+  return;
+end;
