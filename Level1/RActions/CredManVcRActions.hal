@@ -27,8 +27,6 @@ BEGIN
     end;
   end;
 
-  res = inner.CredManVcRecordCheck(CredManr,CredMan2r,stat,long4);
-  
   if (res==0) then begin
     switch (CredManr.Status) begin
       case 0:
@@ -52,6 +50,8 @@ BEGIN
     end;
   end;
 
+  res = inner.CredManVcRecordCheck(CredManr,CredMan2r,stat,long4);
+  
 LCredManVcRecordCheck:;
   CredManVcRecordCheck = res;
   return;
