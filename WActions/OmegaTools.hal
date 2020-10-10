@@ -18,6 +18,19 @@ begin
 end;
 
 global
+function Boolean ShowBuyOutFee()
+begin
+  ShowBuyOutFee = true;
+end;
+
+global
+function Boolean UseBuyOutMonths()
+begin
+  UseBuyOutMonths = true;
+  return;
+end;
+
+global
 function Boolean UseCredManStatus()
 begin
   UseCredManStatus = true;
