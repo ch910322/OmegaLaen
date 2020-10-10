@@ -52,6 +52,13 @@ begin
 end;
 
 global
+function Boolean HasMoneyReceivers()
+begin
+  HasMoneyReceivers = true;
+  return;
+end;
+
+global
 function Boolean CheckForActiveAgreement(record CredManVc CredManr)
 begin
   Boolean res;
