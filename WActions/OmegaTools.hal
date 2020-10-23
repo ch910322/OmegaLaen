@@ -22,6 +22,11 @@ function Boolean ShowBuyOutFee()
 begin
   ShowBuyOutFee = true;
 end;
+global
+function Boolean HasBalloonLoanType()
+begin
+  HasBalloonLoanType = true;
+end;
 
 global
 function Boolean UseBuyOutMonths()
