@@ -1,0 +1,59 @@
+//<halrule>server-only</halrule>
+
+global
+function Boolean GetConditionText2(Longint sernr,Integer type,var record ConditionTextVc tCTr)
+begin
+  record ConditionTextVc CTr;
+  record DefConditionTextVc PCTr;
+  Integer i,lcnt;
+  string 255 code;
+  Boolean res;
+
+  CTr.CredManNr = sernr;
+  CTr.Type = type;
+  if (ReadFirstMain(CTr,2,true)) then begin
+    res = true;
+    RecordCopy(tCTr,CTr);
+  end;
+
+  GetConditionText2 = res;
+  return;
+end;
+
+global
+updating function Boolean GetConditionText(Longint sernr,Integer type,var record ConditionTextVc tCTr)
+begin
+  record ConditionTextVc CTr;
+  record DefConditionTextVc PCTr;
+  Integer i,lcnt;
+  string 255 code;
+
+  CTr.CredManNr = sernr;
+  CTr.Type = type;
+  if (ReadFirstMain(CTr,2,true)==false) then begin
+    RecordNew(CTr);
+    CTr.CredManNr = sernr;
+    CTr.Type = type;
+    RecordInsert(CTr,true);
+  end;
+
+  if (SizeTextCnt(CTr)==0) then begin
+    if (type==1) then begin//payment conditions
+      code = "PMT";
+    end else begin
+      code = "OTHER";
+    end;
+    PCTr.Code = code;
+    if (ReadFirstMain(PCTr,1,true)) then begin
+      lcnt = LineTextCnt2(PCTr);
+      for (i=0;i<lcnt;i=i+1) begin
+        LineTextPut2(CTr,i,LineTextGet2(PCTr,i));
+      end;
+    end;
+    RecordInsert(CTr,true);
+  end; 
+  RecordCopy(tCTr,CTr);
+
+  GetConditionText = true;
+  return;
+end;

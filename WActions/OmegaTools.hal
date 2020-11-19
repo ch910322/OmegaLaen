@@ -64,6 +64,14 @@ begin
 end;
 
 global
+function Boolean HasSuretyPerson()
+begin
+  HasSuretyPerson = true;
+  return;
+end;
+
+
+global
 function Boolean CheckForActiveAgreement(record CredManVc CredManr)
 begin
   Boolean res;

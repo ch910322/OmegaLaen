@@ -3,6 +3,9 @@ begin
 
   SetLangMode(LangEnglish,"ENG",0);
 
+  Setting("Payment Condition Text",PaymentConditionTextWClass,modCredMan);
+  Setting("Other Condition Text",PaymentConditionTextWClass,modCredMan);
+
 
 /* Sales ledger */
 
