@@ -58,3 +58,19 @@ begin
   TextField(20,v=6,-20,-20,Text,0);
   EndWindow;
 end;
+
+window LinkIVWithCredManVClass:1
+  wtag("language","ENG"), wtag("product","*"), wtag("productcode","*"), wtag("device","computer")
+begin
+  real h,v,vs,v2,vs2,hm;
+
+  WindowBegin("Specify Connect Invoices with Agreements",LinkIVWithCredManVClass,CGMnt,RcType);
+  SetWRect(64,80,445,95);
+  h = 150; v = 6; vs = 20;
+  EditFieldTL(h,v,120,"Date Until",M4Date,Normal,0,d1,false,PasteCurDate);
+  EditFieldTL(h,v+=vs,153,"Instalment Items",M4UStr,Normal,60,f1,false,INSClass);
+  EditFieldTL(h,v+=vs,153,"Interest Items",M4UStr,Normal,60,f2,false,INSClass);
+  EditFieldTL(h,v+=vs,153,"Deposit Items",M4UStr,Normal,60,f3,false,INSClass);
+  EditFieldTL(h,v+=vs,153,"Fees Items",M4UStr,Normal,60,f4,false,INSClass);
+  EndWindow;
+end;

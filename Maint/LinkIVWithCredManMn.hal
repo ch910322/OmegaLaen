@@ -1,0 +1,130 @@
+external updating procedure UpdateCredHistInvoice(var record IVVc,record IVVc);
+external updating procedure SplitLoanPaymentsInReceipt(record IPVc,Boolean);
+external procedure GenerateAgreementSchedule(record CredManVc,Boolean);
+
+procedure updating FixAgreementReceipts(record IVVc IVr)
+begin
+  record IPrsVc IPrsr;
+  record IPVc IPr;
+  row IPVc IPrw;
+  Integer i,rwcnt;
+  Boolean TrHs;
+  
+  ResetLoop(IPrsr);
+  RecordClear(IPrsr);
+  TrHs = true;
+  IPrsr.IVNr = IVr.SerNr;
+  IPrsr.TransType = 1;
+  while (LoopKey("IVKey",IPrsr,2,TrHs)) begin
+    if (IPrsr.IVNr!=IVr.SerNr or IPrsr.TransType!=1) then begin
+      TrHs = false;
+    end else begin
+      IPr.SerNr = IPrsr.TransNr;
+      if (ReadFirstMain(IPr,1,true)) then begin
+        rwcnt = MatRowCnt(IPr);
+
+        for (i=rwcnt-1;i>=0;i=i-1) begin
+          MatRowGet(IPr,i,IPrw);
+          if (IPrw.InvoiceNr!=IVr.SerNr) then begin
+            MatRowDelete(IPr,i);
+          end;
+        end;
+        SplitLoanPaymentsInReceipt(IPr,true);
+      end;
+    end;
+  end;
+
+  return;
+end;
+
+/*
+  kEventTypeCalcInstalment = 1,
+  kEventTypeCalcInterest = 2,
+  kEventTypeCalcDeposit = 3,
+  kEventTypeCalcFees = 4,
+*/
+procedure LoadCredManItems(var vector Integer vItemChargeType,record RcVc RepSpec)
+begin
+  Longint pos;
+  string 255 tmp;
+
+  if (nonblank(RepSpec.f1)) then begin
+    pos = -1;
+    while (GetNextSubString(RepSpec.f1,pos,",",tmp)) begin
+      vItemChargeType[tmp] = 1;
+    end;
+  end;
+  if (nonblank(RepSpec.f2)) then begin
+    pos = -1;
+    while (GetNextSubString(RepSpec.f2,pos,",",tmp)) begin
+      vItemChargeType[tmp] = 2;
+    end;
+  end;
+  if (nonblank(RepSpec.f3)) then begin
+    pos = -1;
+    while (GetNextSubString(RepSpec.f3,pos,",",tmp)) begin
+      vItemChargeType[tmp] = 3;
+    end;
+  end;
+  if (nonblank(RepSpec.f4)) then begin
+    pos = -1;
+    while (GetNextSubString(RepSpec.f4,pos,",",tmp)) begin
+      vItemChargeType[tmp] = 4;
+    end;
+  end;
+
+  return;
+end;
+
+global
+updating procedure LinkIVWithCredManMn(record RcVc RepSpec)
+begin
+  Boolean TrHs;
+  record IVVc IVr,oldIVr,IV3r;
+  row IVVc IVrw;
+  record CredManVc CredManr;
+  Integer i,rwcnt;
+  vector Integer vItemChargeType;
+  vector Boolean vCredMan;
+  array string 255 aCredMan;
+  
+  LoadCredManItems(vItemChargeType,RepSpec);
+  TrHs = true;
+  IVr.TransDate = "";
+  while (LoopKey("TransDate",IVr,1,TrHs)) begin
+    if (IVr.TransDate>RepSpec.d1) then begin
+      TrHs = false;
+    end else begin
+      if (IVr.CustCredManNr==-1 and IVr.Invalid==0) then begin
+        ResetLoop(CredManr);
+        CredManr.CustCode = IVr.CustCode;
+        if (ReadFirstKey("CustCode",CredManr,1,true)) then begin
+          RecordCopy(oldIVr,IVr);
+          IVr.CustCredManNr = CredManr.SerNr;
+          rwcnt = MatRowCnt(IVr);
+          for (i=0;i<rwcnt;i=i+1) begin
+            MatRowGet(IVr,i,IVrw);
+            if (nonblank(IVrw.ArtCode)) then begin
+              IVrw.ChargeType = vItemChargeType[IVrw.ArtCode];
+              MatRowPut(IVr,i,IVrw);
+            end;
+          end;  
+          UpdateCredHistInvoice(IVr,IV3r);
+          RecordUpdate(oldIVr,IVr,false);
+          FixAgreementReceipts(IVr);
+          vCredMan[CredManr.SerNr] = true;
+        end;
+      end;
+    end;
+  end;
+
+  GetVectorTags(vCredMan,aCredMan);
+  for (i=0;i<aCredMan.length;i=i+1) begin
+    CredManr.SerNr = StringToLongint(aCredMan[i]);
+    if (ReadFirstMain(CredManr,1,true)) then begin
+      GenerateAgreementSchedule(CredManr,true);
+    end;
+  end;
+
+  return;
+end;

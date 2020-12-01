@@ -6,6 +6,8 @@ begin
   Setting("Payment Condition Text",PaymentConditionTextWClass,modCredMan);
   Setting("Other Condition Text",PaymentConditionTextWClass,modCredMan);
 
+  Maintenance("Connect Invoices with Agreements",LinkIVWithCredManVClass,LinkIVWithCredManMn,modCredMan);
+
 
 /* Sales ledger */
 
