@@ -22,5 +22,7 @@ begin
   EditFieldTL(h,v+=vs,153,"Interest Items",M4UStr,Normal,60,f2,false,INSClass);
   EditFieldTL(h,v+=vs,153,"Deposit Items",M4UStr,Normal,60,f3,false,INSClass);
   EditFieldTL(h,v+=vs,153,"Fees Items",M4UStr,Normal,60,f4,false,INSClass);
+  EditFieldTL(h,v+=vs,153,"Agreement",M4Long,Normal,0,long1,false,CredManSClass);
+  EditFieldTL(h,v+=vs,153,"Invoice",M4Long,Normal,0,long2,false,IVSClass);
   EndWindow;
 end;

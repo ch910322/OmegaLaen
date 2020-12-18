@@ -77,6 +77,23 @@ begin
   return;
 end;
 
+function Boolean FilterCredMan(record CredManVc CredManr,record IVVc IVr,record RcVc RepSpec)
+begin
+  Boolean res;
+
+  res = true;
+  if (RepSpec.long1>0 and CredManr.SerNr!=RepSpec.long1) then begin
+    res = false;
+  end;
+  if (RepSpec.long2>0 and IVr.SerNr!=RepSpec.long2) then begin
+    res = false;
+  end;
+
+
+  FilterCredMan = res;
+  return;
+end;
+
 global
 updating procedure LinkIVWithCredManMn(record RcVc RepSpec)
 begin
@@ -100,32 +117,34 @@ begin
         ResetLoop(CredManr);
         CredManr.CustCode = IVr.CustCode;
         if (ReadFirstKey("CustCode",CredManr,1,true)) then begin
-          RecordCopy(oldIVr,IVr);
-          if (IVr.CustCredManNr>-1) then begin
-            IV3r.SerNr = IVr.SerNr;
-            UpdateCredHistInvoice(IV3r,IVr);
-          end;
-          if (IVr.InvDate>=CredManr.startDate) then begin
-            IVr.CustCredManNr = CredManr.SerNr;
-          end else begin
-            IVr.CustCredManNr = -1;
-          end;
-          rwcnt = MatRowCnt(IVr);
-          for (i=0;i<rwcnt;i=i+1) begin
-            MatRowGet(IVr,i,IVrw);
-            if (nonblank(IVrw.ArtCode)) then begin
-              if (IVr.InvDate>=CredManr.startDate) then begin
-                IVrw.ChargeType = vItemChargeType[IVrw.ArtCode];
-              end else begin
-                IVrw.ChargeType = 0;
-              end;
-              MatRowPut(IVr,i,IVrw);
+          if (FilterCredMan(CredManr,IVr,RepSpec)) then begin
+            RecordCopy(oldIVr,IVr);
+            if (IVr.CustCredManNr>-1) then begin
+              IV3r.SerNr = IVr.SerNr;
+              UpdateCredHistInvoice(IV3r,IVr);
             end;
-          end;  
-          UpdateCredHistInvoice(IVr,IV3r);
-          RecordUpdate(oldIVr,IVr,false);
-          FixAgreementReceipts(IVr);
-          vCredMan[CredManr.SerNr] = true;
+            if (IVr.InvDate>=CredManr.startDate) then begin
+              IVr.CustCredManNr = CredManr.SerNr;
+            end else begin
+              IVr.CustCredManNr = -1;
+            end;
+            rwcnt = MatRowCnt(IVr);
+            for (i=0;i<rwcnt;i=i+1) begin
+              MatRowGet(IVr,i,IVrw);
+              if (nonblank(IVrw.ArtCode)) then begin
+                if (IVr.InvDate>=CredManr.startDate) then begin
+                  IVrw.ChargeType = vItemChargeType[IVrw.ArtCode];
+                end else begin
+                  IVrw.ChargeType = 0;
+                end;
+                MatRowPut(IVr,i,IVrw);
+              end;
+            end;  
+            UpdateCredHistInvoice(IVr,IV3r);
+            RecordUpdate(oldIVr,IVr,false);
+            FixAgreementReceipts(IVr);
+            vCredMan[CredManr.SerNr] = true;
+          end;
         end;
       end;
     end;
