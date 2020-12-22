@@ -123,7 +123,7 @@ begin
               IV3r.SerNr = IVr.SerNr;
               UpdateCredHistInvoice(IV3r,IVr);
             end;
-            if (IVr.InvDate>=CredManr.startDate) then begin
+            if (IVr.InvDate>=CredManr.startDate or RepSpec.long2>-1) then begin
               IVr.CustCredManNr = CredManr.SerNr;
             end else begin
               IVr.CustCredManNr = -1;
@@ -132,7 +132,7 @@ begin
             for (i=0;i<rwcnt;i=i+1) begin
               MatRowGet(IVr,i,IVrw);
               if (nonblank(IVrw.ArtCode)) then begin
-                if (IVr.InvDate>=CredManr.startDate) then begin
+                if (IVr.InvDate>=CredManr.startDate or RepSpec.long2>-1) then begin
                   IVrw.ChargeType = vItemChargeType[IVrw.ArtCode];
                 end else begin
                   IVrw.ChargeType = 0;
