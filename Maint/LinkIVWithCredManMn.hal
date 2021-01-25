@@ -1,6 +1,6 @@
 external updating procedure UpdateCredHistInvoice(var record IVVc,record IVVc);
 external updating procedure SplitLoanPaymentsInReceipt(record IPVc,Boolean);
-external procedure GenerateAgreementSchedule(record CredManVc,Boolean);
+external procedure GenerateAgreementSchedule(record CredManVc,Boolean,Boolean);
 
 procedure updating FixAgreementReceipts(record IVVc IVr)
 begin
@@ -154,7 +154,7 @@ begin
   for (i=0;i<aCredMan.length;i=i+1) begin
     CredManr.SerNr = StringToLongint(aCredMan[i]);
     if (ReadFirstMain(CredManr,1,true)) then begin
-      GenerateAgreementSchedule(CredManr,true);
+      GenerateAgreementSchedule(CredManr,true,true);
     end;
   end;
 
