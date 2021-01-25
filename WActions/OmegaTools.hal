@@ -99,7 +99,7 @@ begin
 end;
 
 global
-function Boolean CanCredManMakePayment(record CredManVc CredManr)
+function Boolean CanCredManMakePayment(record CredManVc CredManr,var string errstr)
 begin
   Boolean res;
 
