@@ -4,6 +4,7 @@ begin
   SetLangMode(LangEnglish,"ENG",0);
 
   Maintenance("Connect Invoices with Agreements",LinkIVWithCredManVClass,LinkIVWithCredManMn,modCredMan);
+  Maintenance("Remove Credit Agreement",RemoveCredManVClass,RemoveCredManMn,modCredMan);
 
 
 /* Sales ledger */

@@ -1,0 +1,39 @@
+
+
+global
+updating procedure RemoveCredManMn(record RcVc RepSpec)
+begin
+  record CredManVc CredManr;
+  record CredHistVc CredHistr;
+  record IVVc IVr,oldIVr;
+  Integer i,rwcnt;
+  row IVVc IVrw;
+
+  if (RepSpec.long1>0) then begin
+    while (LoopKey("CredManTransDate:" & RepSpec.long1,CredHistr,1,true)) begin
+      RecordDelete(CredHistr);
+      StepBack(CredHistr);
+    end;
+    CredManr.SerNr = RepSpec.long1;
+    if (ReadFirstMain(CredManr,1,true)) then begin
+      RecordDelete(CredManr);
+    end;
+    while (LoopMain(IVr,1,true)) begin
+      if (IVr.CustCredManNr==RepSpec.long1) then begin
+        RecordCopy(oldIVr,IVr);
+        IVr.CustCredManNr = -1;
+        rwcnt = MatRowCnt(IVr);
+        for (i=0;i<rwcnt;i=i+1) begin
+          MatRowGet(IVr,i,IVrw);
+          IVrw.ChargeType = 0;
+          IVrw.CredHistNr = -1;
+          MatRowPut(IVr,i,IVrw);
+        end;
+        RecordUpdate(oldIVr,IVr,false);
+      end;
+    end;
+  end;
+
+
+  return;
+end;

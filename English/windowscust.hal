@@ -26,3 +26,16 @@ begin
   EditFieldTL(h,v+=vs,153,"Invoice",M4Long,Normal,0,long2,false,IVSClass);
   EndWindow;
 end;
+
+window RemoveCredManVClass:1
+  wtag("language","ENG"), wtag("product","*"), wtag("productcode","*"), wtag("device","computer")
+begin
+  real h,v,vs,v2,vs2,hm;
+
+  WindowBegin("Specify Removing Credit Agreements",RemoveCredManVClass,CGMnt,RcType);
+  SetWRect(64,80,445,95);
+  h = 150; v = 6; vs = 20;
+  EditFieldTL(h,v,153,"Agreement",M4Long,Normal,0,long1,false,CredManSClass);
+  EndWindow;
+end;
+
