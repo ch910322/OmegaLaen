@@ -105,14 +105,25 @@ begin
   vector Integer vItemChargeType;
   vector Boolean vCredMan;
   array string 255 aCredMan;
+  string 255 ckey;
   
   LoadCredManItems(vItemChargeType,RepSpec);
   TrHs = true;
-  IVr.TransDate = "";
-  while (LoopKey("TransDate",IVr,1,TrHs)) begin
-    if (IVr.TransDate>RepSpec.d1) then begin
+  if (RepSpec.long2>0) then begin
+    IVr.SerNr = RepSpec.long2;
+    ckey = "SerNr";
+  end else begin
+    IVr.TransDate = "";
+    ckey = "TransDate";
+  end;
+  while (LoopKey(ckey,IVr,1,TrHs)) begin
+    if (ckey=="TransDate" and IVr.TransDate>RepSpec.d1) then begin
       TrHs = false;
-    end else begin
+    end;
+    if (ckey=="SerNr" and IVr.SerNr!=RepSpec.long2) then begin
+      TrHs = false;
+    end;
+    if (TrHs) then begin
       if (IVr.Invalid==0 and IVr.OKFlag==1) then begin
         ResetLoop(CredManr);
         CredManr.CustCode = IVr.CustCode;
@@ -143,6 +154,7 @@ begin
             UpdateCredHistInvoice(IVr,IV3r);
             RecordUpdate(oldIVr,IVr,false);
             FixAgreementReceipts(IVr);
+LogText(0,"LinkIVWithCredManMn invoice " & IVr.SerNr & "; Spec.long2=" & RepSpec.long2 & ":" & IVr.CustCredManNr);            
             vCredMan[CredManr.SerNr] = true;
           end;
         end;
