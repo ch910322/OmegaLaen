@@ -99,6 +99,13 @@ begin
 end;
 
 global
+function Boolean UseBuyoutSummary()
+begin
+  UseBuyoutSummary = true;
+  return;
+end;
+
+global
 function Boolean CanCredManMakePayment(record CredManVc CredManr,var string errstr)
 begin
   Boolean res;
