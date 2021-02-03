@@ -6,6 +6,9 @@ external function val GetCustomerOpenAmount(string,record IVVc);
 external inner procedure ValToText(val,Integer,string,string,var string);
 external inner procedure MailTextRow(string,string,string,var row MailTextVc,var Integer);
 external inner function string 255 StrReplace(string,string,string);
+external inner function Integer SetDateOrder(string);
+external inner procedure LongDateToStr(Date,Integer,var string);
+external inner procedure GetMonthText(string,Date,var string);
 
 global
 function Boolean Ext_SkipInvoiceRow(record IVVc IVr,row IVVc IVrw,Integer i)
@@ -44,6 +47,7 @@ begin
   return;
 end;
 
+global
 procedure FillInvoiceData(record IVVc IVr,var record RcVc RepSpec)
 begin
   record CYBlock CompYear;
@@ -57,6 +61,7 @@ begin
   row IVVc IVrw;
   record UserVc Userr;
   record CredManVc CredManr;
+  Date td;
 
   BlockLoad(CompYear);
 
@@ -65,7 +70,11 @@ begin
 
   RepSpec.sStartDate = CurrentDate;//F_DATUM
   RepSpec.f8 = GetCredManNr(IVr.CustCredManNr);//F_NUMMER
-  RepSpec.f9 = IVr.OfficialSerNr;
+  if (nonblank(IVr.OfficialSerNr)) then begin
+    RepSpec.f9 = IVr.OfficialSerNr;
+  end else begin
+    RepSpec.f9 = IVr.SerNr;
+  end;
   RepSpec.vals0 = t2;//F_ORGATTBETALA
   RepSpec.f1 = IVr.CurncyCode;//F_VALUTA
   RepSpec.long2 = IVr.SerNr;//F_FAKTURANUMMER
@@ -121,6 +130,14 @@ begin
       RepSpec.f15 = Userr.Job;
     end;
   end;
+  td = AddDay(IVr.InvDate,-1);
+  GetMonthText(IVr.LangCode,td,tstr);
+  RepSpec.f17 = tstr & " " & GetDay(td);
+  RepSpec.Comment = tstr;
+  RepSpec.f18 = CredManr.Addr0;
+  LongDateToStr(IVr.InvDate,SetDateOrder(IVr.LangCode),tstr);
+  RepSpec.f20 = tstr;
+
   
   return;
 end;
