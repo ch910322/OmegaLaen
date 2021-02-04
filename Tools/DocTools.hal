@@ -149,9 +149,10 @@ begin
   td = AddDay(IVr.InvDate,-1);
   GetMonthText(IVr.LangCode,td,tstr);
   RepSpec.f17 = tstr & " " & GetDay(td);
+  GetMonthText(IVr.LangCode,IVr.InvDate,tstr);
   RepSpec.Comment = tstr;
   RepSpec.f18 = CredManr.Addr0;
-  LongDateToStr(IVr.InvDate,SetDateOrder(IVr.LangCode),tstr);
+  LongDateToStr(IVr.PayDate,SetDateOrder(IVr.LangCode),tstr);
   RepSpec.f20 = tstr;
 
   
