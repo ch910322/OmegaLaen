@@ -1,0 +1,212 @@
+remote procedure CheckScript(record RcVc,var record RcVc,var Boolean);
+
+event startup
+begin
+
+  SetLangMode(LangEnglish,"ENG",2);
+  
+  Setting("Run script",Cust_RunScriptWClass,modDBMain)
+  return;
+end;
+
+window Cust_RunScriptWClass:1
+  wtag("language","ENG"), wtag("product","*"), wtag("productcode","*"), wtag("device","computer")
+begin
+  real h,h2,h4,v,vs;
+  WindowBegin("Run Script on Host",Cust_RunScriptWClass,CGother,RcType);
+  UseView(RcVc);
+  SetWRect(20,80,450,280);
+  vs = 20;h = 100;h2 =  330;h4 = 500; v = 6;
+  ToolBar;
+  HalPushButton(-120,v,-20,v+20,"Cust_RunScriptWClassRun","Run");
+  EndToolBar;
+  SetWRect(64,80,470,298);
+  Sizeable(-1,-1,0,0);
+  TextField(0,6,-1,-1,Text,0);
+  EndWindow;
+end;
+
+
+global
+procedure Cust_RunScriptWClassRun()
+begin
+  Integer wn;
+  record RcVc RepSpec,ResRepSpec;
+  record CloudNodeVc CNr;
+  Boolean res,res2;
+  LongInt i;
+  array string 255 nodearr;
+
+  wn = CurWindow;
+  DeselectWindow(wn,true);
+  GetWindowRecord(wn,RepSpec);
+
+  ThreadRemote.CheckScript(RepSpec,ResRepSpec,res);
+  //if (res==false) then begin
+    ResRepSpec.Media = mtScreen;
+    ResRepSpec.repname = "Cust_RunScriptRn";
+    ResRepSpec.f2 = "Check Script Result";
+    RepSpec.NoTimeoutLimit = 1;
+    RunReport(ResRepSpec,0);
+    goto LASPRunScriptOnHostWClassRun;
+  //end;
+
+LASPRunScriptOnHostWClassRun:;
+  return;
+end;
+
+
+procedure DumpTextFieldToReport(record RcVc RepSpec)
+begin
+  LongInt l,lcnt;
+  string 255 tstr;
+  lcnt = LineTextCnt(RepSpec);
+  for (l = 0; l<lcnt; l = l + 1) begin
+    tstr = LineTextGet(RepSpec,l);
+    StartFormat(15);
+      OutString(0,0,tstr,false);
+    EndFormat;
+  end;
+
+  return;
+end;
+
+global
+procedure Cust_RunScriptRn(record RcVc RepSpec)
+begin
+  StartReportJob(RepSpec.f2);
+  EndHeader;
+  DumpTextFieldToReport(RepSpec);
+  EndJob;
+
+  return;
+end;
+
+procedure AddLineToArea(string line,area a)
+begin
+  AddTextToArea(line,a);
+  AddTextToArea(chr(10),a);
+  return;
+end;
+
+global
+function Boolean CheckOrRunScript(record CloudNodeVc CNr,Boolean checkf,record RcVc RepSpec,var record RcVc ResRepSpec)
+begin
+  Boolean res;
+  LongInt l,lcnt;
+  string 255 tstr,script,tmpfile,outfile,errfile,sucfile,scriptfile,bsfile;
+  string 255 scext;
+  area atmp;
+
+  lcnt = LineTextCnt2(RepSpec);
+  for (l = 0; l<lcnt; l = l + 1) begin
+    tstr = LineTextGet2(RepSpec,l);
+    AddLineToArea(tstr,atmp);
+  end;
+
+  if (ProgramPlatform==kPlatformWindows32 or ProgramPlatform==kPlatformWindows64) then begin
+    scext = ".cmd";
+  end else begin
+    scext = ".sh";
+  end;
+
+  scriptfile = CreateTempFile("script",scext);
+  WriteAreaToFile(atmp,scriptfile,0);
+  SetAreaZeroSize(atmp);
+
+  tmpfile = CreateTempFile("script",".out");
+
+  outfile = tmpfile & ".out";
+  errfile = tmpfile & ".err";
+  sucfile = tmpfile & ".suc";
+  bsfile = CreateTempFile("scriptstarter",scext);
+
+  if (ProgramPlatform==kPlatformWindows32 or ProgramPlatform==kPlatformWindows64) then begin
+    if (checkf==true) then begin
+      LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"The Windows platform doesn't support script syntax checking.");
+      goto LCheckOrRunScript; // No check functionality on Windows
+    end else begin
+      AddLineToArea("cmd /Q /D /U /E:ON /F:ON /C " & scriptfile & " > " & outfile & " 2>&1 && echo $null >> " & sucfile & " || echo $null >> " & errfile,atmp);
+    end;
+  end else begin
+    AddLineToArea("#!/bin/bash",atmp);
+    if (checkf==true) then begin
+      AddLineToArea("bash -n " & scriptfile & " &>" & outfile & " && touch " & sucfile & " || touch " & errfile,atmp);
+    end else begin
+      AddLineToArea("bash " & scriptfile & " &>" & outfile & " && touch " & sucfile & " || touch " & errfile,atmp);
+    end;
+  end;
+
+  WriteAreaToFile(atmp,bsfile,0);
+
+  if (ProgramPlatform==kPlatformWindows32 or ProgramPlatform==kPlatformWindows64) then begin
+    script = "cmd /Q /D /U /E:ON /F:ON /C " & bsfile;
+  end else begin
+    script = "bash " & bsfile;
+  end;
+  RunShellScript(script);
+  Delete_File(bsfile);
+  Delete_File(scriptfile);
+
+  if (FileExists(sucfile)) then begin
+    Delete_File(sucfile);
+    res = true;
+    if (checkf==false) then begin
+      LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"The script executed successfully on node " & CNr.Code & ":");
+    end;
+  end else begin
+    if (checkf==true) then begin
+      if (FileExists(errfile)) then begin
+        LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"ERROR: Script failed the syntax check:");
+        Delete_File(errfile);
+      end else begin
+        LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"FATAL ERROR: The script could not  be tested.");
+      end;
+      LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"");
+      LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"Output:");
+      LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"");
+    end else begin
+      if (FileExists(errfile)) then begin
+        LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"ERROR: When running on " & CNr.Code & ":");
+        Delete_File(errfile);
+      end else begin
+        LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"FATAL ERROR: The node " &  CNr.Code & " could not start the script.");
+      end;
+      LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"");
+    end;
+  end;
+
+  SetAreaZeroSize(atmp);
+  AddFileToArea(outfile,atmp,false);
+  if (ProgramPlatform==kPlatformWindows32 or ProgramPlatform==kPlatformWindows64) then begin
+    AreaUCS2Decode(atmp);
+    tstr = AreaToString(atmp);
+    tstr = ReplaceStringWithString(tstr,chr(10),"");
+    SetAreaZeroSize(atmp);
+    AddTextToArea(tstr,atmp);
+  end;
+  lcnt = CountLinesInArea(atmp);
+  for (l = 0; l<lcnt; l = l + 1) begin
+    tstr = GetLineFromArea(atmp,l);
+    LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),tstr);
+  end;
+  if (checkf==false and l>0) then begin
+    LineTextPut2(ResRepSpec,LineTextCnt2(ResRepSpec),"");
+  end;
+
+LCheckOrRunScript:;
+  Delete_File(outfile);
+  Delete_File(tmpfile);
+  CheckOrRunScript = res;
+  return;
+end;
+
+global
+procedure CheckScript(record RcVc RepSpec,var record RcVc ResRepSpec,var Boolean res)
+begin
+  record CloudNodeVc CNr;
+  res = CheckOrRunScript(CNr,false,RepSpec,ResRepSpec);
+  return;
+end;
+
+
