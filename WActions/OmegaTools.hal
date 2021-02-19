@@ -183,3 +183,12 @@ begin
   MailTextDClassAfterEditField = res;
   return;
 end;
+
+
+global
+function Boolean ShowPartialBuyoutOptions()
+begin
+  ShowPartialBuyoutOptions = true;
+  return;
+end;
+
