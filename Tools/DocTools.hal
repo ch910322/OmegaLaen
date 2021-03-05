@@ -186,9 +186,9 @@ begin
     topay3 = 0;
   end;
 
-  RepSpec.CustStr1 = DateToString(td,"DD.MM.YYYY");
-  RepSpec.CustStr2 = openamount2;
-  RepSpec.CustStr3 = topay3;
+  RepSpec.ObjStr = DateToString(td,"DD.MM.YYYY");
+  RepSpec.Stext = openamount2;
+  RepSpec.FirstAcc = topay3;
 
   return;
 end;
