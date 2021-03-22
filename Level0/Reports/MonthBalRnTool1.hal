@@ -1,0 +1,138 @@
+//bilanss kuude lyikes
+//new dev, compare to on BalRn
+external function Boolean GetObjBal(string,string,var record ObjBalVc);
+//Bk KB 27.12.2017
+external function Boolean MonthAccRuPerBalBL(record RcVc,Boolean,string,string,var array val,var array val,var array val,var array val,var array val,var array val,
+                                      Integer,Boolean,Date,Date,Date);
+external procedure MonthAGrSumLineBL(record RcVc,Integer,string,string,string,
+                              array val,array val,array val,array val,array val,array val,Boolean,val,Boolean,Boolean,string,LongInt,Boolean,Boolean);
+external function LongInt GetMonthDiff(Date,Date);
+//new functions dedicated to this report
+external function boolean SomeArrZero6(array val, array val, array val, array val, array val ,array val, integer);
+external function boolean SomeArrNotZero6(array val, array val, array val, array val, array val ,array val, integer);
+//Bk end
+
+global
+procedure MonthSumLine2BL(record RcVc RepSpec,Boolean PLf,string t1,string t2,string extracode,
+                   var array val Sum1p,var array val Sum2p,var array val Sum3p,var array val Sum4p,var array val Sum5p,
+                   var array val Sum6p,Boolean negf,val goms,Boolean resUseAccum,Date AccumStartDate,Integer DCSide,LongInt agrid,Boolean printf)
+BEGIN
+  record ObjVc RUr;
+  Boolean Accs,RUOut,usedf;
+  array val S3b1,Pb1,Eb1,S4b1,S5b1,S6b1;
+  array val S3b2,Pb2,Eb2,S4b2,S5b2,S6b2;
+  array val S3b3,Pb3,Eb3,S4b3,S5b3,S6b3;
+  string 255 tstr,nru,objs;
+  record ObjBalVc ObjBalr;
+  Boolean Objbals;
+  //Bk KB 27.12.2017
+  integer monthCnt,i;
+
+  monthCnt = GetMonthDiff(RepSpec.sStartDate,RepSpec.sEndDate);
+  for(i=0;i<monthCnt;i=i+1) begin //Bk KB 22.12.2017
+    S3b2[i] = Sum1p[i];
+    Pb2[i] = Sum2p[i];
+    Eb2[i] = Sum3p[i];
+    S4b2[i] = Sum4p[i];
+    S5b2[i] = Sum5p[i];
+    S6b2[i] = Sum6p[i];
+  end;
+  //Bk end
+  RUOut = false;
+  RUr.OTCode = RepSpec.ObjType;
+  RUr.Code = "";
+  Accs = true;
+  while (LoopKey("OTCode",RUr,2,Accs)) begin
+    if (RUr.OTCode!=RepSpec.ObjType) then begin 
+      goto L22SumLine2;
+    end;
+    if (RepSpec.critname=="ResRClass") then begin
+      if (nonblank(RepSpec.f6)) then begin
+        if (SetInSet(RUr.Code,RepSpec.f6)) then begin
+          goto LSkipObjectSumLine2;
+        end;
+      end;
+    end;
+
+    ObjBalr.AccNumber = t1;
+    ObjBalr.Object = RUr.Code;
+//    Objbals = ReadFirstMain(RUr,1,true);
+    Objbals = GetObjBal(t1,RUr.Code,ObjBalr);
+    if (RepSpec.IncDaughter==1) then begin//otherwise it skips daughter
+//        if (cstreq(RepSpec.repname,"ResRn")==false) then
+//            if (Objbals==false) then goto LSkipObjectSumLine2;
+    end else begin
+//        if (Objbals==false) then begin //budget may be defined even if no NL transactions
+//          goto LSkipObjectSumLine2;
+//        end;  
+    end;  
+    usedf = MonthAccRuPerBalBL(RepSpec,PLf,t1,RUr.Code,S3b1,Pb1,Eb1,S4b1,S5b1,S6b1,0,resUseAccum,AccumStartDate,RepSpec.sStartDate,RepSpec.sEndDate);
+// Jarek thinks that it is not correct fix and we need to discuss it more
+// I agree, but as you said, we should probably analyse this before dismissing it...
+// [Jarek] we do not have amounts per objects set , like A,B, in support register
+/*
+    objs = RUr.Code;
+    if (nonblank(RepSpec.ObjStr)) then begin
+      objs = objs & ",";
+      objs = objs & RepSpec.ObjStr;
+    end;
+    usedf = AccRuPerBal(RepSpec,PLf,t1,objs,S3b1,Pb1,Eb1,S4b1,S5b1,S6b1,0,resUseAccum,AccumStartDate,RepSpec.sStartDate,RepSpec.sEndDate);
+*/
+    for(i=0;i<monthCnt;i=i+1) begin //Bk KB 22.12.2017
+      S3b2[i] = S3b2[i] - S3b1[i];
+      S4b2[i] = S4b2[i] - S4b1[i];
+      S5b2[i] = S5b2[i] - S5b1[i];
+      S6b2[i] = S6b2[i] - S6b1[i];
+      Pb2[i] = Pb2[i] - Pb1[i];
+      Eb2[i] = Eb2[i] - Eb1[i];
+      S3b3[i] = S3b3[i] + S3b1[i];
+      S4b3[i] = S4b3[i] + S4b1[i];
+      S5b3[i] = S5b3[i] + S5b1[i];
+      S6b3[i] = S6b3[i] + S6b1[i];
+      Pb3[i] = Pb3[i] + Pb1[i];
+      Eb3[i] = Eb3[i] + Eb1[i];  
+    end; //Bk end
+    if (SomeArrZero6(S3b1,S4b1,S5b1,S6b1,Pb1,Eb1,monthCnt) or (usedf)) then begin //Bk KB 27.12.2017
+      if (RUOut==false) then begin
+        if (printf) then begin
+          StartFormat(15);
+          OutString(0,0,t1,false);
+          OutString(2,0,t2,false);
+          EndFormat;
+          RUOut = true;
+        end;
+      end;
+      nru = RUr.Code;
+      if (nonblank(RepSpec.ObjStr)) then begin
+        nru = nru & ",";
+        nru = nru & RepSpec.ObjStr;
+      end;
+      MonthAGrSumLineBL(RepSpec,6,nru,RUr.Comment,extracode,S3b1,Pb1,Eb1,S4b1,S5b1,S6b1,negf,goms,PLf,resUseAccum,"",agrid,usedf,printf);
+    end;
+LSkipObjectSumLine2:;
+  end;
+L22SumLine2:;
+  if (RepSpec.flags[2]!=0) then begin
+    if (RUOut) then begin
+      if (SomeArrNotZero6(S3b2,S4b2,S5b2,S6b2,Pb2,Eb2,monthCnt)) then begin //Bk KB 27.12.2017
+        MonthAGrSumLineBL(RepSpec,6,"",USetStr(3141),extracode,S3b2,Pb2,Eb2,S4b2,S5b2,S6b2,negf,goms,PLf,resUseAccum,"DblNL",agrid,usedf,printf);
+      end;
+      MonthAGrSumLineBL(RepSpec,6,"",USetStr(3142),extracode,Sum1p,Sum2p,Sum3p,Sum4p,Sum5p,Sum6p,negf,goms,PLf,resUseAccum,"DblNL",agrid,usedf,printf);
+    end else begin
+      MonthAGrSumLineBL(RepSpec,0,t1,t2,extracode,Sum1p,Sum2p,Sum3p,Sum4p,Sum5p,Sum6p,negf,goms,PLf,resUseAccum,"DblNL",agrid,usedf,printf);
+    end;
+  end else begin
+    if (RUOut) then begin
+      MonthAGrSumLineBL(RepSpec,6,"",USetStr(3142),extracode,S3b3,Pb3,Eb3,S4b3,S5b3,S6b3,negf,goms,PLf,resUseAccum,"DblNL",agrid,usedf,printf);
+    end;
+    for(i=0;i<monthCnt;i=i+1) begin //Bk KB 22.12.2017
+      Sum1p[i] = S3b3[i];
+      Sum2p[i] = Pb3[i];
+      Sum3p[i] = Eb3[i];
+      Sum4p[i] = S4b3[i];
+      Sum5p[i] = S5b3[i];
+      Sum6p[i] = S6b3[i];
+    end;
+  end;
+  RETURN;
+END;

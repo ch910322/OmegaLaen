@@ -1,0 +1,102 @@
+external inner function Boolean HasObjects();
+external inner function Boolean HasMultiCurrency();
+external inner function Boolean HasLanguages();
+external inner function Boolean HasAdvancedAccounting();
+external inner function Boolean HasBase2();
+external inner function Boolean HasSimulations();
+
+//kasumiaruanne kuude l›ikes
+window MonthResRClass:1
+  wtag("language","EST"), wtag("product","*"), wtag("productcode","*"), wtag("device","computer")
+begin
+  real h,v,vm;
+  WindowBegin("MŠŠra kasumiaruanne kuude l›ikes",MonthResRClass,CGRcW,RcType);
+  SetWRect(20,80,580,250);
+  PeriodField(h=150,v=6,"Periood (maks.12 kuud)");
+  if (HasObjects) then begin
+  EditFieldTL(h,v+=20,150,"Objekt",M4UStr,Normal,60 ,ObjStr,false,ObjSClass);
+  EditFieldTL(h,v+=20,50,"ObjektitŸŸp",M4UStr,Normal,5 ,ObjType,false,OTSClass);
+  end;
+  vm=v;
+  if (HasMultiCurrency) then begin
+  EditField(h,v+=20,50,"Valuuta",Normal,CurncyCode,false,CurncyCodeSClass);
+  end;
+  if (HasLanguages) then begin
+  EditField(h,v+=20,50,"Keel",Normal,Language,false,LangSClass);  
+  end;
+  EditFieldTL(395,6,120,"PŠis",M4Str,Normal,60 ,f1,false,0);
+  ButtonFrame(h=395,v=vm,123,5,"Kontod");
+  RadioButton(h,v,0,0,"K›ik",AccSpec);
+  RadioButton(h,v+=16,1,0,"Ainult kasutatud",AccSpec);
+  if (HasAdvancedAccounting or HasLocalization("FIN")) then begin
+  RadioButton(h,v+=16,2,0,"A_inult grupid",AccSpec);
+  RadioButton(h,v+=16,3,0,"Ai_nult kas. grupid",AccSpec);
+  RadioButton(h,v+=16,4,0,"Ain_ult saldoga",AccSpec);
+  end;
+  EndFrame;
+  if (HasBase2) then begin
+  ButtonFrame(h=230,v=vm+30,123,2,"VŠŠrtused");
+  RadioButton(h,v,0,0,"Baasvaluutas _1",basecurncy);
+  RadioButton(h,v+=16,1,0,"Baasvaluutas _2",basecurncy);
+  end;
+  EndWindow;
+end;
+
+//bilanss kuude loikes
+window MonthBalRClass:1
+  wtag("language","EST"), wtag("product","*"), wtag("productcode","*"), wtag("device","computer")
+begin
+  real h,v,vm,vs;
+
+  vs = 20;
+  WindowBegin("MŠŠra bilanss kuude l›ikes",MonthBalRClass,CGRcW,RcType);
+  SetWRect(20,80,540,380);
+  PeriodField(h=100,v=6,"Periood");
+  if (HasObjects) then begin
+    EditFieldTL(h,v+=20,250,"Objekt",M4UStr,Normal,60 ,ObjStr,false,ObjSClass);
+    EditFieldTL(h,v+=20,50,"ObjektitŸŸp",M4UStr,Normal,5 ,ObjType,false,OTSClass);
+    CheckBox(180,v,0,"Kaasa arvatud mŠŠramata",flags[2]);
+  end;
+  if (HasMultiCurrency) then begin
+    EditField(h,v+=20,50,"Valuuta",Normal,CurncyCode,false,CurncyCodeSClass);
+  end;
+  if (HasLanguages) then begin
+    EditField(h,v+=20,50,"Keel",Normal,Language,false,LangSClass);
+    EditFieldTL(335,6,140,"PŠis",M4Str,Normal,60 ,f1,false,0);
+  end else begin
+    EditFieldTL(h,v+=vs,150,"PŠis",M4Str,Normal,60 ,f1,false,0);
+  end;
+  ButtonFrame(h=30,vm=(v+=41),123,5,"Kontod");
+  RadioButton(h,v,0,0,"K›ik",AccSpec);
+  RadioButton(h,v+=16,1,0,"Ainult _saldoga",AccSpec);
+  if (HasAdvancedAccounting) then begin
+    RadioButton(h,v+=16,2,0,"Ainult _grupid",AccSpec);
+    RadioButton(h,v+=16,3,0,"Ainult kasut. gru_pid",AccSpec);
+  end;
+  RadioButton(h,v+=16,4,0,"Ainult kasutatud",AccSpec);
+  EndFrame;
+  h = h + 148 * 2;
+  if (HasBase2 or HasMultiCurrency) then begin
+    ButtonFrame(h,v+=40,123,2,"VŠŠrtused");
+    RadioButton(h,v,0,0,"Baasvaluutas _1",basecurncy);
+    RadioButton(h,v+=16,1,0,"Baasvaluutas _2",basecurncy);
+    v = v + 24;
+  end;
+  h = 30;
+  if (HasAdvancedAccounting) then begin
+    v = vm + 100;
+  end else begin
+    v = vm + 80;
+  end;
+  if (HasSimulations) then begin
+    CheckBox(h,v,0,"Kaasaarvatud _simulatsioonid",SimVerf); v = v + 16;
+  end;
+  if (HasAdvancedAccounting) then begin
+    CheckBox(h,v,0,"NŠita kandenumbreid",flags[4]); v = v + 16;
+  end;
+  if (HasAdvancedAccounting) then begin
+    CheckBox(h,v,0,"PŠiseta",flags[5]); v = v + 16;
+  end;
+  CheckBox(h,v,0,"NŠita nulle tŸhjade ridade asemel",flags[19]); v = v + 16;
+  EndWindow;
+end;

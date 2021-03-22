@@ -1,20 +1,18 @@
 event startup
 begin
 
-  SetLangMode(LangEnglish,"ENG",0);
-
-  Maintenance("Connect Invoices with Agreements",LinkIVWithCredManVClass,LinkIVWithCredManMn,modCredMan);
-  Maintenance("Remove Credit Agreement",RemoveCredManVClass,RemoveCredManMn,modCredMan);
+  SetLangMode(LangLithuanian,"LIT",0);
 
   Report("Profit & Loss (Monthly)",MonthResRClass,MonthResRn,0,modNL);
   Report("Balance Sheet (Monthly)",MonthBalRClass,MonthBalRn,0,modNL);
   
-/* Kasumiaruanne kuude l›ikes */
+  
+  /* Kasumiaruanne kuude l›ikes */
 // SString(1500258):SString(1500270)
   SString(1500258,"jan.");
   SString(1500259,"feb.");
   SString(1500260,"mar.");
-  SString(1500261,"apr."); 
+  SString(1500261,"apr.");
   SString(1500262,"may");
   SString(1500263,"jun.");
   SString(1500264,"jul.");
@@ -29,19 +27,6 @@ begin
 // SString(1501310):SString(1501319)
   SString(1501310,"Balance Sheet per month");
   SString(1501319,"Reserved");
-
-
-/* Sales ledger */
-
-  SString(9000010,"Agreement");
-  SString(9000011,"Item");
-  SString(9000012,"Documents no signed");
-  SString(9000013,"Invoices already created");
-
-  StrSetAdd(3);
-  StrSetText(AllowActivateCredMan,"Allow activating Credit Agreements");
-  StrSetText(AllowDisburseCredMan,"Allow disbursing Credit Agreements");
-  EndStrSet;
 
   return;
 end;

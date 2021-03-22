@@ -1,0 +1,295 @@
+//bilanss kuude lyikes
+//new dev, custom implementations of 2d arrays of size [size]x[12] for month reports
+global
+function boolean ArrLessZero(array val theArray, integer size)
+begin
+  boolean res;
+  integer i;
+
+  res = true;
+  for(i=0;i<size;i=i+1) begin
+    if(theArray[i] >= 0) then begin
+      res = false;
+      i = size;
+    end;
+  end;
+  ArrLessZero = res;
+  return;
+end;
+
+global
+function boolean ArrGreatZero(array val theArray, integer size)
+begin
+  boolean res;
+  integer i;
+
+  res = true;
+  for(i=0;i<size;i=i+1) begin
+    if(theArray[i] <= 0) then begin
+      res = false;
+      i = size;
+    end;
+  end;
+  ArrGreatZero = res;
+  return;
+end;
+
+global
+function boolean ArrEqualZero(array val theArray, integer size)
+begin
+  boolean res;
+  integer i;
+
+  res = true;
+  for(i=0;i<size;i=i+1) begin
+    if(theArray[i] != 0) then begin
+      res = false;
+      i = size;
+    end;
+  end;
+  ArrEqualZero = res;
+  return;
+end;
+
+global
+function boolean SomeArrNotZero6(array val arr1, array val arr2, array val arr3, array val arr4, array val arr5, array val arr6, integer size)
+begin
+  boolean res;
+  integer i;
+
+  res = false;
+  for(i=0;i<size;i=i+1) begin
+    if(arr1[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr2[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr3[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr4[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr5[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr6[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  SomeArrNotZero6 = res;
+  return;
+end;
+
+global
+function boolean SomeArrZero6(array val arr1, array val arr2, array val arr3, array val arr4, array val arr5, array val arr6, integer size)
+begin
+  boolean res;
+  integer i;
+
+  res = false;
+  for(i=0;i<size;i=i+1) begin
+    if(arr1[i] == 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr2[i] == 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr3[i] == 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr4[i] == 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr5[i] == 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr6[i] == 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  SomeArrZero6 = res;
+  return;
+end;
+
+global
+function boolean SomeArrNotZero5(array val arr1, array val arr2, array val arr3, array val arr4, array val arr5, integer size)
+begin
+  boolean res;
+  integer i;
+
+  res = false;
+  for(i=0;i<size;i=i+1) begin
+    if(arr1[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr2[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr3[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr4[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  for(i=0;i<size;i=i+1) begin
+    if(arr5[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  SomeArrNotZero5 = res;
+  return;
+end;
+
+global
+function boolean SomeArrNotZero1(array val arr1, integer size)
+begin
+  boolean res;
+  integer i;
+
+  res = false;
+  for(i=0;i<size;i=i+1) begin
+    if(arr1[i] != 0) then begin
+      res = true;
+      i = size;
+    end;
+  end;
+  SomeArrNotZero1 = res;
+  return;
+end;
+
+global
+procedure PutValTo2DArr(val value, integer i, integer j, var vector record SMVc SMr)
+begin
+  row SMVc SMrw;
+  record SMVc tmpSMr;
+
+  //i = month number
+  tmpSMr = SMr[j];
+  SMrw.DebVal = value;
+  MatRowPut(tmpSMr,i,SMrw);
+  SMr[j] = tmpSMr;
+  return;
+end;
+
+global
+procedure PutValTo2DVec(val value, integer i, integer j, var vector val vec)
+begin
+  integer index;
+
+  //i = month number
+  index = j * 12 + i;
+  vec[index] = value;
+  return;
+end;
+
+global
+function val GetValFrom2DVec(integer i, integer j, vector val vec)
+begin
+  val res;
+  integer index;
+
+  //i = month number
+  index = j * 12 + i;
+  res = vec[index];
+  GetValFrom2DVec = res;
+  return;
+end;
+
+global
+function val GetValFrom2DArr(integer i, integer j, vector record SMVc SMr)
+begin
+  val res;
+  row SMVc SMrw;
+  record SMVc tmpSMr;
+
+  tmpSMr = SMr[j];
+  //i = month number
+  MatRowGet(tmpSMr,i,SMrw);
+  res = SMrw.DebVal;
+  GetValFrom2DArr = res;
+  return;
+end;
+
+global
+procedure ArrFrom2DArr(vector record SMVc SMr, integer j, integer size, var array val res)
+begin
+  row SMVc SMrw;
+  integer i;
+
+  //j = record number in vector
+  for(i=0;i<size;i=i+1) begin
+    MatRowGet(SMr[j],i,SMrw);
+    res[i] = SMrw.DebVal;
+  end;
+  return;
+end;
+
+global
+procedure ArrFrom2DVec(vector val vec, integer j, integer size, var array val res)
+begin
+  integer i,index;
+
+  //j = record number in vector
+  for(i=0;i<size;i=i+1) begin
+    index = j * 12 + i;
+    res[i] = vec[index];
+  end;
+  return;
+end;
+
+global
+procedure New2DArray(vector record SMVc SMr, integer idkey)
+begin
+  record SMVc tempSMr;
+  integer i;
+
+  RecordNew(tempSMr);
+  SMr[idkey] = tempSMr;
+  return;
+end;

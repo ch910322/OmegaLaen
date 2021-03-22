@@ -1,0 +1,1518 @@
+//bilanss kuude lyikes
+//kasumiaruanne ja eelarve kuude loikes
+//new dev, compare to BalRn
+external procedure MonthCalcRsTypeSum(vector val,vector val,vector val,
+                        vector val,vector val,vector val,
+                        vector Boolean,Array record UserDefRepLinesVc,Integer,LongInt,integer);
+external function Integer DateGetIntMonth(Date);
+external function LongInt DateDiff(Date,Date);
+external function Boolean GetObjBal(string,string,var record ObjBalVc);
+external function Integer CountObjects(string);
+external procedure GetAccStartBalance(string,string,Date,record ObjBalVc,Integer,Integer,string,Integer,var val);
+external procedure GetAccBalance(string,string,Date,record ObjBalVc,Integer,Integer,Integer,string,Integer,var val);
+external procedure GetAccDCStartBalance(string,string,Date,record ObjBalVc,Integer,Integer,string,Integer,var val,var val);
+external procedure GetAccTurnover(string,string,Date,Date,record ObjBalVc,string,Integer,Integer,Integer,var val,var val);
+external procedure GetAccDCTurnover(string,string,Date,Date,record ObjBalVc,string,Integer,Integer,Integer,val,val,var val,var val);
+external function val Budg1Calc2(string,string,string,string,Date,Date,Integer,Integer,Integer);
+external function val Budg2Calc2(string,string,string,string,Date,Date,Integer,Integer,Integer);
+external procedure FindFiscalYear(Date,var Date,var Date);
+//Bk KB 22.12.2017
+external function LongInt GetMonthDiff(Date,Date);
+//new functions dedicated to this report
+external function boolean SomeArrNotZero6(array val, array val, array val, array val, array val ,array val, integer);
+external function boolean SomeArrNotZero1(array val, integer);
+external procedure PutValTo2DVec(val, integer, integer, var vector val);
+external function val GetValFrom2DVec(integer, integer, vector val);
+//Bk end
+
+procedure SetPLSumups(Integer column,var val Sbp,var val Pbp,var val Ebp)
+BEGIN
+  val temp;
+  
+  if ((column==10) or (column==12)) then begin
+    Ebp = Sbp - Pbp;
+  end;
+  if ((column==11) or (column==13)) then begin
+    if (Pbp==0) then begin
+      Ebp = blankval;
+    end else begin
+      temp = Sbp - Pbp;
+      Ebp = temp/Pbp;
+      Ebp = Ebp*100;
+      Ebp = -Ebp;
+    end;
+  end;
+  RETURN;
+END;
+
+procedure SetBSSumups(Integer column,var val Sbp,var val Pbp,var val Ebp)
+BEGIN
+  val temp;
+  
+  if ((column==10) or (column==12)) then begin
+    Ebp = Sbp - Pbp;
+  end;
+  if ((column==11) or (column==13)) then begin
+    if (Pbp==0) then begin
+      Ebp = blankval;
+    end else begin
+      temp = Sbp - Pbp;
+      Ebp = temp/Pbp;
+      Ebp = Ebp*100;
+      Ebp = -Ebp;
+    end;
+  end;
+  RETURN;
+END;
+
+procedure AddupRU(Integer DCSide,var val Sbp,var val Pbp,val dSb,val dPb,val cSb,val cPb)
+BEGIN
+  if (DCSide==1) then begin
+    Sbp = dSb;
+    Pbp = dPb;
+  end;
+  if (DCSide==2) then begin
+    Sbp = -cSb;
+    Pbp = -cPb;
+  end;
+  if ((DCSide!=1) and (DCSide!=2)) then begin
+    Sbp = dSb - cSb;
+    Pbp = dPb - cPb;
+  end;
+  RETURN;
+END;
+
+procedure SetBSColBal(record RcVc RepSpec,Integer column,string accstr,string objs,record ObjBalVc ObjBalr,var val valp,Integer DCSide,Date AccumStartDate,
+                      Date budsd,Date buded)
+BEGIN
+  Date pysd,pyed;
+  val dSb,cSb,dPb,cPb;
+  val temp,temp2;
+  
+  if (column==1) then begin// Start Balance 
+    GetAccDCStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    AddupRU(DCSide,valp,temp,dSb,dPb,cSb,cPb);
+  end;
+  if (column==2) then begin// Turnover
+    GetAccDCStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,dSb,cSb,dPb,cPb);
+    AddupRU(DCSide,temp,valp,dSb,dPb,cSb,cPb);
+  end;
+  if (column==3) then begin// End Balance 
+    GetAccDCStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,dSb,cSb,dPb,cPb);
+    AddupRU(DCSide,temp,temp2,dSb,dPb,cSb,cPb);
+    valp = temp + temp2;
+  end;
+  if (column==4) then begin// To Budget 1 
+    valp = Budg1Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsd,buded,RepSpec.basecurncy,RepSpec.IncDaughter,0); 
+  end;
+  if (column==5) then begin// To Budget 2 
+    valp = Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsd,buded,RepSpec.basecurncy,RepSpec.IncDaughter,0); 
+  end;
+  if (column==6) then begin// Previous Year Start Balance 
+    pysd = AddYear(RepSpec.sStartDate,-1);
+    pyed = AddYear(RepSpec.sEndDate,-1);
+    GetAccDCStartBalance(accstr,objs,pysd,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    AddupRU(DCSide,valp,temp,dSb,dPb,cSb,cPb);
+  end;
+  if (column==7) then begin// Previous Year Turnover 
+    pysd = AddYear(RepSpec.sStartDate,-1);
+    pyed = AddYear(RepSpec.sEndDate,-1);
+    if ((GetMonth(pyed)==2) and (GetDay(pyed)==28)) then begin
+      if (IsLeapYear(GetYear(pyed))) then begin
+        pyed = AddDay(pyed,-GetDay(pyed) + 29);
+      end;
+    end;          
+    GetAccDCStartBalance(accstr,objs,pysd,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    GetAccDCTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,dSb,cSb,dPb,cPb);
+    AddupRU(DCSide,temp,temp2,dSb,dPb,cSb,cPb);
+    valp = temp + temp2;
+  end;
+  if (column==8) then begin// Previous Year End Balance 
+    pysd = AddYear(RepSpec.sStartDate,-1);
+    pyed = AddYear(RepSpec.sEndDate,-1);
+    if ((GetMonth(pyed)==2) and (GetDay(pyed)==28)) then begin
+      if (IsLeapYear(GetYear(pyed))) then begin
+        pyed = AddDay(pyed,-GetDay(pyed) + 29);
+      end;
+    end;          
+    GetAccDCStartBalance(accstr,objs,pysd,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    GetAccDCTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,dSb,cSb,dPb,cPb);
+    AddupRU(DCSide,temp,temp2,dSb,dPb,cSb,cPb);
+    valp = temp + temp2;
+  end;
+  if ((column==10) or (column==11) or (column==12) or (column==13)) then begin
+  end;
+  if (column==15) then begin// Start Balance this year 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    GetAccDCStartBalance(accstr,objs,pysd,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    AddupRU(DCSide,valp,temp,dSb,dPb,cSb,cPb);
+  end;
+  if (column==16) then begin// Turnover this year 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    GetAccDCStartBalance(accstr,objs,pysd,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    GetAccDCTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,dSb,cSb,dPb,cPb);
+    AddupRU(DCSide,temp,valp,dSb,dPb,cSb,cPb);
+  end;
+  if (column==17) then begin// End Balance this year 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    GetAccDCStartBalance(accstr,objs,pysd,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,dSb,cSb);
+    GetAccDCTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,dSb,cSb,dPb,cPb);
+    AddupRU(DCSide,temp,temp2,dSb,dPb,cSb,cPb);
+    valp = temp + temp2;
+  end;
+  if (column==18) then begin// To Budget 1 this year 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    valp = Budg1Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,pysd,pyed,RepSpec.basecurncy,RepSpec.IncDaughter,0); 
+  end;
+  if (column==19) then begin// To Budget 2 this year 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    valp = Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,pysd,pyed,RepSpec.basecurncy,RepSpec.IncDaughter,0);  
+  end;
+  RETURN;
+END;
+
+procedure SetPLColBal(record RcVc RepSpec,Integer column,string accstr,string objs,record ObjBalVc ObjBalr,var val valp,Integer DCSide,Date AccumStartDate,
+                      Date budsd,Date buded)
+BEGIN
+  Date pysd,pyed;
+  val dSb,cSb,dPb,cPb;
+  val temp,temp2;
+  val t;
+  
+  if (column==1) then begin// Accumulated 
+    GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,blankval,blankval,dPb,cPb);
+    AddupRU(DCSide,temp,valp,dSb,dPb,cSb,cPb);
+  end;
+  if (column==2) then begin// End Balance  
+    GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,blankval,blankval,dSb,cSb);
+    GetAccDCTurnover(accstr,objs,AccumStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,blankval,blankval,dPb,cPb);
+    AddupRU(DCSide,temp,temp2,dSb,dPb,cSb,cPb);
+    valp = temp + temp2;// Don't know if it is correct 
+  end;
+  if (column==3) then begin// Previous Year 
+    pysd = AddYear(RepSpec.sStartDate,-1);
+    pyed = AddYear(RepSpec.sEndDate,-1);
+    if ((GetMonth(pyed)==2) and (GetDay(pyed)==28)) then begin
+      if (IsLeapYear(GetYear(pyed))) then begin
+        pyed = AddDay(pyed,-GetDay(pyed) + 29);
+      end;
+    end;              
+    t = BlankVal;    
+    GetAccTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,valp);
+  end;
+  if (column==4) then begin// To Budget 1  
+    valp = Budg1Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsd,buded,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+  end;
+  if (column==5) then begin// To Budget 2  
+    valp = Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsd,buded,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+  end;
+  if (column==6) then begin// Previous Year Result
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);
+    pysd = AddYear(pysd,-1);
+    pyed = AddYear(RepSpec.sEndDate,-1);
+    if ((GetMonth(pyed)==2) and (GetDay(pyed)==28)) then begin
+      if (IsLeapYear(GetYear(pyed))) then begin
+        pyed = AddDay(pyed,-GetDay(pyed) + 29);
+      end;
+    end;              
+    GetAccDCTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,blankval,blankval,dSb,cSb);
+    AddupRU(DCSide,valp,temp,dSb,dPb,cSb,cPb);
+  end;
+  if ((column==10) or (column==11) or (column==12) or (column==13)) then begin
+  end;
+  if (column==15) then begin // Accumulated YTD 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    pyed = RepSpec.sEndDate;
+    GetAccDCTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,blankval,blankval,dPb,cPb);
+    AddupRU(DCSide,temp,valp,dSb,dPb,cSb,cPb);
+  end;
+  if (column==16) then begin // To Budget 1 YTD
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    valp = Budg1Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,pysd,RepSpec.sEndDate,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+  end;
+  if (column==17) then begin // To Budget 2 YTD
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    valp = Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,pysd,RepSpec.sEndDate,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+  end;
+  if (column==18) then begin// To Budget 1 this year 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    valp = Budg1Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,pysd,pyed,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+  end;
+  if (column==19) then begin// To Budget 2 this year 
+    FindFiscalYear(RepSpec.sStartDate,pysd,pyed);  
+    valp = Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,pysd,pyed,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+  end;
+  return;
+end;
+
+global
+function Boolean MonthAccRuPerBalBL(record RcVc RepSpec,Boolean PLf,string accstr,string objs,var array val Sbp,var array val Pbp,var array val Ebp,
+                      var array val S4bp,var array val S5bp,var array val S6bp,Integer DCSide,Boolean resUseAccum,Date AccumStartDate,
+                      Date budsd,Date buded)
+BEGIN
+  record ObjBalVc ObjBalr;
+  Boolean Objbals;
+  Date pysd,pyed;
+  array val dSb,cSb,dPb,cPb;
+  val t;
+  Boolean skipf;
+  Boolean res;
+  array val oS3b1,oPb1,oEb1,oS4b1,oS5b1,oS6b1;
+  string 255 theobj;
+  record AccVc Accr;
+  LongInt diff;
+  Integer mode;
+  record ObjVc Objr;
+  Boolean found;
+  array val v1,v2;
+  //Bk - start 
+  integer monthCnt,i; //Bk KB 21.12.2017
+  date sd,ed,origSd,origEd,budsdTmp,budedTmp;//Bk KB 21.12.2017
+  val tmpSbp,tmpPbp,tmpEbp,tmpS4bp,tmpS5bp,tmpS6bp;
+  val tmpdSb,tmpcSb,tmpdPb,tmpcPb;
+  val tempVal;
+  //Bk - end
+  
+  origSd = RepSpec.sStartDate;
+  origEd = RepSpec.sEndDate;
+  sd = RepSpec.sStartDate;
+  ed = RepSpec.sEndDate;
+  monthCnt = GetMonthDiff(RepSpec.sStartDate,RepSpec.sEndDate);
+
+  //Bk KB 21.12.2017
+  for (i=0;i<monthCnt;i=i+1) begin //clean the variables
+    Sbp[i] = 0;
+    S4bp[i] = 0;
+    S5bp[i] = 0;
+    S6bp[i] = 0;
+    Pbp[i] = 0;
+    Ebp[i] = 0;
+
+    dSb[i] = blankval;
+    cSb[i] = blankval;
+    dPb[i] = blankval;
+    cPb[i] = blankval;
+
+    oS3b1[i] = blankval;
+    oPb1[i] = blankval;
+    oEb1[i] = blankval;
+    oS4b1[i] = blankval;
+    oS5b1[i] = blankval;
+    oS6b1[i] = blankval;
+
+    v1[i] = blankval;
+    v2[i] = blankval;
+  end;
+  for (i=0;i<monthCnt;i=i+1) begin //global loop starts
+    ed = sd;
+    ed.day = DaysInMonth(GetYear(ed),GetMonth(ed));
+    RepSpec.sStartDate = sd;
+    RepSpec.sEndDate = ed;
+    budsdTmp = sd;
+    budedTmp = ed;
+  //Bk end
+
+  ObjBalr.AccNumber = accstr;
+  ObjBalr.Object = objs;
+  Objbals = ReadFirstMain(ObjBalr,2,true);  
+  if (Objbals==false) then begin
+    if (RepSpec.IncDaughter==0) then begin
+      if (CountObjects(objs)<=1) then begin
+        skipf = true;        
+      end;
+    end;    
+  end;
+  if (PLf==false) then begin
+    if ((RepSpec.Comparison==0) or (RepSpec.Comparison==4) or (RepSpec.Comparison==5)) then begin
+      if (skipf==false) then begin
+        //Bk KB 27.12.2017
+        tmpdSb = dSb[i];
+        tmpcSb = cSb[i];
+        tmpdPb = dPb[i];
+        tmpcPb = cPb[i];
+        GetAccDCStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,tmpdSb,tmpcSb);
+        
+        GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,tmpdSb,tmpcSb,tmpdPb,tmpcPb);
+        dSb[i] = tmpdSb; 
+        cSb[i] = tmpcSb;
+        dPb[i] = tmpdPb;
+        cPb[i] = tmpcPb;
+        //Bk end
+      end;
+      switch (RepSpec.AccSpec) begin
+        case 1:
+          if ((dPb[i]-cPb[i])!=0) then begin
+            res = true;
+          end;
+/*
+          if ((dPb[i]!=0) or (cPb[i]!=0)) then begin
+            res = true;
+          end;
+
+*/          
+        case 4:
+          Accr.AccNumber = accstr;
+          if (ReadFIrstMain(Accr,1,true)) then begin end;
+          if (Accr.blockedFlag!=0) then begin
+            if (((dSb[i]-cSb[i])!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+              res = true;
+            end;
+          end else begin
+            if ((dSb[i]!=0) or (cSb[i]!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+              res = true;
+            end;
+          end;
+      end;
+/*      
+      if (RepSpec.AccSpec==1) then begin
+        if ((dSb[i]!=0) or (cSb[i]!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+          res = true;
+        end;
+      end;  
+*/    
+      //Bk KB 27.12.2017
+      tmpSbp = Sbp[i];
+      tmpPbp = Pbp[i];
+      AddupRU(DCSide,tmpSbp,tmpPbp,dSb[i],dPb[i],cSb[i],cPb[i]);
+      Sbp[i] = tmpSbp;
+      Pbp[i] = tmpPbp;
+      //Bk end;
+      Ebp[i] = Sbp[i] + Pbp[i];
+    end;
+    if (RepSpec.Comparison==2) then begin
+      switch (RepSpec.AccSpec) begin
+        case 4:
+          if (skipf==false) then begin
+            //Bk - start KB 03.06.2019
+            tmpdSb = dSb[i];
+            tmpcSb = cSb[i];
+            tmpdPb = dPb[i];
+            tmpcPb = cPb[i];
+            GetAccDCStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,tmpdSb,tmpcSb);
+            Sbp[i] = dSb[i] - cSb[i];
+            GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                             RepSpec.IncDaughter,dSb[i],cSb[i],tmpdPb,tmpcPb);
+            dSb[i] = tmpdSb; 
+            cSb[i] = tmpcSb;
+            dPb[i] = tmpdPb;
+            cPb[i] = tmpcPb;
+            //Bk - end
+            Pbp[i] = dPb[i] - cPb[i] + Sbp[i];
+          end;
+          Accr.AccNumber = accstr;
+          if (ReadFIrstMain(Accr,1,true)) then begin end;
+          if (Accr.blockedFlag!=0) then begin
+            if (((dSb[i]-cSb[i])!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+              res = true;
+            end;
+          end else begin
+            if ((dSb[i]!=0) or (cSb[i]!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+              res = true;
+            end;
+          end;
+        otherwise
+          if (skipf==false) then begin
+            tmpSbp = Sbp[i];
+            GetAccStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,tmpSbp);
+            Sbp[i] = tmpSbp;
+            
+            tmpPbp = Pbp[i];
+            GetAccBalance(accstr,objs,RepSpec.sEndDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,0,RepSpec.CurncyCode,RepSpec.IncDaughter,tmpPbp);
+            Pbp[i] = tmpPbp;
+          end;
+      end;
+      
+      Ebp[i] = Budg1Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsdTmp,budedTmp,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+//      Ebp[i] = Ebp[i] + Sbp[i]; //Why should we add Fwd Balance to Budget???
+    end;
+    if (RepSpec.Comparison==3) then begin
+      switch (RepSpec.AccSpec) begin
+        case 4:
+          if (skipf==false) then begin
+            //Bk - start KB 03.06.2019
+            tmpdSb = dSb[i];
+            tmpcSb = cSb[i];
+            tmpdPb = dPb[i];
+            tmpcPb = cPb[i];
+    //same as other comparison
+            GetAccDCStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,tmpdSb,tmpcSb);
+            Sbp[i] = dSb[i] - cSb[i];
+            GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                             RepSpec.IncDaughter,dSb[i],cSb[i],tmpdPb,tmpcPb);
+            dSb[i] = tmpdSb; 
+            cSb[i] = tmpcSb;
+            dPb[i] = tmpdPb;
+            cPb[i] = tmpcPb;
+            //Bk - end
+            Pbp[i] = dPb[i] - cPb[i] + Sbp[i];
+          end;
+          Accr.AccNumber = accstr;
+          if (ReadFIrstMain(Accr,1,true)) then begin end;
+          if (Accr.blockedFlag!=0) then begin
+            if (((dSb[i]-cSb[i])!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+              res = true;
+            end;
+          end else begin
+            if ((dSb[i]!=0) or (cSb[i]!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+              res = true;
+            end;
+          end;
+        otherwise
+          if (skipf==false) then begin
+            //Bk - start KB 03.06.2019
+            tmpSbp = Sbp[i];
+            GetAccStartBalance(accstr,objs,RepSpec.sStartDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.CurncyCode,RepSpec.IncDaughter,tmpSbp);
+            Sbp[i] = tmpSbp;
+
+            tmpPbp = Pbp[i];
+            GetAccBalance(accstr,objs,RepSpec.sEndDate,ObjBalr,RepSpec.SimVerf,RepSpec.basecurncy,0,RepSpec.CurncyCode,RepSpec.IncDaughter,tmpPbp);
+            Pbp[i] = tmpPbp;
+            //Bk - end
+          end;
+      end;
+      
+      Ebp[i] = Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsdTmp,budedTmp,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+//      Ebp[i] = Ebp[i] + Sbp[i]; //Why should we add Fwd Balance to Budget???
+    end;
+    if (RepSpec.Comparison==-1) then begin
+      if (RepSpec.flags[11]==4) or (skipf==false) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[11],accstr,objs,ObjBalr,Sbp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[12]==4) or (skipf==false) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[12],accstr,objs,ObjBalr,Pbp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[13]==4) or (skipf==false) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[13],accstr,objs,ObjBalr,Ebp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[14]==4) or (skipf==false) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[14],accstr,objs,ObjBalr,S4bp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[15]==4) or (skipf==false) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[15],accstr,objs,ObjBalr,S5bp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[16]==4) or (skipf==false) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[16],accstr,objs,ObjBalr,S6bp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      SetPLSumups(RepSpec.flags[13],Sbp[i],Pbp[i],Ebp[i]);
+      SetPLSumups(RepSpec.flags[16],S4bp[i],S5bp[i],S6bp[i]);
+    end;
+  end else begin
+//StopAlert("S3b1 " & S3b1 & " Pb1 " & Pb1 & " Eb1 " & Eb1 & " S4b1 " & S4b1 & " S5b1 " & S5b1 & " S6b1 " & S6b1);        
+    if (RepSpec.Comparison==0) then begin
+      if (skipf==false) then begin      
+        if (nonblank(RepSpec.ObjType)) then begin
+          Objr.OTCode = RepSpec.ObjType;
+          Objr.Code = objs;
+          found = true;
+          while (LoopKey("OTCode",Objr,2,found)) begin
+            if (Objr.OTCode!=RepSpec.ObjType) then begin 
+              found = false;
+            end;
+            if (nonblank(objs)) then begin
+              if (Objr.Code!=objs) then begin 
+                found = false;
+              end;
+            end;
+            if (found) then begin
+              ObjBalr.AccNumber = accstr;
+              ObjBalr.Object = Objr.Code;
+              Objbals = ReadFirstMain(ObjBalr,2,true);  
+
+              if (resUseAccum==true) then begin
+                GetAccDCTurnover(accstr,Objr.Code,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                                 RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,v1[i],v2[i]); //Bk KB 22.12.2017                      
+                dSb[i] = dSb[i] + v1[i];                
+                cSb[i] = cSb[i] + v2[i];                
+                GetAccDCTurnover(accstr,Objr.Code,AccumStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                                 RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,v1[i],v2[i]); //Bk KB 22.12.2017
+                dPb[i] = dPb[i] + v1[i];
+                cPb[i] = cPb[i] + v2[i];
+              end else begin        
+                GetAccDCTurnover(accstr,Objr.Code,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                                 RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,v1[i],v2[i]); //Bk KB 22.12.2017
+                                 
+                dPb[i] = dPb[i] + v1[i];
+                cPb[i] = cPb[i] + v2[i];
+              end;
+            end;
+          end;
+          if (blank(objs)) then begin
+            if (RepSpec.flags[2]!=0) and true then begin
+              ObjBalr.AccNumber = accstr;
+              ObjBalr.Object = "";
+              Objbals = ReadFirstMain(ObjBalr,2,true);  
+              if (resUseAccum==true) then begin
+                GetAccDCTurnover(accstr,"",RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                                 RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,v1[i],v2[i]);                           
+                dSb[i] = dSb[i] + (v1[i] - dSb[i]);
+                cSb[i] = cSb[i] + (v2[i] - cSb[i]);
+                GetAccDCTurnover(accstr,"",AccumStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                                 RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,v1[i],v2[i]);
+                dPb[i] = dPb[i] + (v1[i] - dPb[i]);
+                cPb[i] = cPb[i] + (v2[i] - cPb[i]);
+              end else begin        
+                GetAccDCTurnover(accstr,"",RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                                 RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,v1[i],v2[i]);
+                dPb[i] = dPb[i] + (v1[i] - dPb[i]);
+                cPb[i] = cPb[i] + (v2[i] - cPb[i]);
+              end;
+            end;
+          end;
+          if (resUseAccum==true) then begin
+          end else begin
+            dSb[i] = dPb[i];
+            cSb[i] = cPb[i];          
+          end;
+        end else begin              
+          if (resUseAccum==true) then begin
+            GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                             RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,dSb[i],cSb[i]);                           
+            GetAccDCTurnover(accstr,objs,AccumStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                             RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,dPb[i],cPb[i]);
+          end else begin        
+            GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,
+                             RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,blankval,blankval,dPb[i],cPb[i]);
+            dSb[i] = dPb[i];
+            cSb[i] = cPb[i];
+/*
+          ObjBalr.AccNumber = accstr;
+          ObjBalr.Object = "";
+          Objbals = ReadFirstMain(ObjBalr,2,true);  
+*/
+          end;
+        end;
+        if (RepSpec.AccSpec==1) then begin
+          if ((dSb[i]!=0) or (cSb[i]!=0) or (dPb[i]!=0) or (cPb[i]!=0)) then begin
+            res = true;
+          end;  
+        end;  
+        AddupRU(DCSide,Sbp[i],Pbp[i],dSb[i],dPb[i],cSb[i],cPb[i]);
+      end;
+    end;
+    if (RepSpec.Comparison==1) then begin
+      if (skipf==false) then begin
+        pysd = AddYear(RepSpec.sStartDate,-1);
+        pyed = RepSpec.sEndDate;
+        pyed = AddYear(RepSpec.sEndDate,-1);
+        if ((GetMonth(pyed)==2) and (GetDay(pyed)==28)) then begin
+          if (IsLeapYear(GetYear(pyed))) then begin
+            pyed = AddDay(pyed,-GetDay(pyed) + 29);
+          end;
+        end;
+        if (nonblank(RepSpec.ObjType)) then begin
+          Objr.OTCode = RepSpec.ObjType;
+          if (nonblank(objs)) then begin
+            Objr.Code = objs;
+          end;
+          found = true;
+          while (LoopKey("OTCode",Objr,2,found)) begin
+            if (Objr.OTCode!=RepSpec.ObjType) then begin 
+              found = false;
+            end;
+            if (nonblank(objs)) then begin
+              if (Objr.Code!=objs) then begin 
+                found = false;
+              end;
+            end;
+            if (found) then begin
+              ObjBalr.AccNumber = accstr;
+              ObjBalr.Object = Objr.Code;
+              Objbals = ReadFirstMain(ObjBalr,2,true);  
+              t = BlankVal;
+              //Bk - start KB 03.06.2019
+              tempVal = v1[i];
+              GetAccTurnover(accstr,Objr.Code,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+              v1[i] = tempVal; //bug, cannot assign to element of array directly
+              Sbp[i] = Sbp[i] + v1[i];
+              t = blankval;
+              tempVal = v2[i];
+              GetAccTurnover(accstr,Objr.Code,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+              v2[i] = tempVal; //bug, cannot assign to element of array directly
+              //Bk - end
+              Pbp[i] = Pbp[i] + v2[i];
+            end;
+          end;
+          if (blank(objs)) then begin
+            if (RepSpec.flags[2]!=0) and true then begin
+              ObjBalr.AccNumber = accstr;
+              ObjBalr.Object = "";
+              Objbals = ReadFirstMain(ObjBalr,2,true);  
+              t = BlankVal;
+              //Bk - start KB 03.06.2019
+              tempVal = v1[i];
+              GetAccTurnover(accstr,"",pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+              v1[i] = tempVal; //bug, cannot assign to element of array directly
+              Sbp[i] = Sbp[i] + (v1[i] - Sbp[i]);
+              t = blankval;
+              tempVal = v2[i];
+              GetAccTurnover(accstr,"",RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+              v2[i] = tempVal; //bug, cannot assign to element of array directly
+              //Bk - end
+              Pbp[i] = Pbp[i] + (v2[i] - Pbp[i]);
+            end;
+          end;
+        end else begin        
+          t = BlankVal;
+          //Bk - start KB 03.06.2019
+          tempVal = Sbp[i];
+          GetAccTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+          Sbp[i] = tempVal; //bug, cannot assign to element of array directly
+          t = blankval;
+          tempVal = Pbp[i];
+          GetAccTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+          Pbp[i] = tempVal; //bug, cannot assign to element of array directly
+          //Bk - end
+        end;
+      end;
+    end;
+    if (RepSpec.Comparison==2) then begin
+      if (nonblank(RepSpec.ObjType)) then begin
+        Objr.OTCode = RepSpec.ObjType;
+        if (nonblank(objs)) then begin
+          Objr.Code = objs;
+        end;
+        found = true;
+        while (LoopKey("OTCode",Objr,2,found)) begin
+          if (Objr.OTCode!=RepSpec.ObjType) then begin 
+            found = false;
+          end;
+          if (nonblank(objs)) then begin
+            if (Objr.Code!=objs) then begin 
+              found = false;
+            end;
+          end;
+          if (found) then begin
+            Sbp[i] = Sbp[i] + Budg1Calc2(accstr,Objr.Code,RepSpec.CurncyCode,RepSpec.FirstAcc,budsdTmp,budedTmp,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+            if (skipf==false) then begin
+              ObjBalr.AccNumber = accstr;
+              ObjBalr.Object = Objr.Code;
+              Objbals = ReadFirstMain(ObjBalr,2,true);  
+              t = BlankVal;
+              //Bk - start KB 03.06.2019
+              tempVal = v2[i];
+              GetAccTurnover(accstr,Objr.Code,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+              v2[i] = tempVal; //bug, cannot assign to element of array directly
+              //Bk - end
+              Pbp[i] = Pbp[i] + v2[i];
+            end;
+          end;
+        end;
+      end else begin
+        Sbp[i] = Budg1Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsdTmp,budedTmp,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+        if (skipf==false) then begin
+          t = BlankVal;
+          //Bk - start KB 03.06.2019
+          tempVal = Pbp[i];
+          GetAccTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+          Pbp[i] = tempVal; //bug, cannot assign to element of array directly
+          //Bk - end
+        end;
+      end;
+    end;
+    if (RepSpec.Comparison==3) then begin
+      if (nonblank(RepSpec.ObjType)) then begin
+        Objr.OTCode = RepSpec.ObjType;
+        if (nonblank(objs)) then begin
+          Objr.Code = objs;
+        end;
+        found = true;
+        while (LoopKey("OTCode",Objr,2,found)) begin
+          if (Objr.OTCode!=RepSpec.ObjType) then begin 
+            found = false;
+          end;
+          if (nonblank(objs)) then begin
+            if (Objr.Code!=objs) then begin 
+              found = false;
+            end;
+          end;
+          if (found) then begin
+            Sbp[i] = Sbp[i] + Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsdTmp,budedTmp,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+            if (skipf==false) then begin
+              ObjBalr.AccNumber = accstr;
+              ObjBalr.Object = Objr.Code;
+              Objbals = ReadFirstMain(ObjBalr,2,true);  
+              t = BlankVal;
+              //Bk - start KB 03.06.2019
+              tempVal = v2[i];
+              GetAccTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+              v2[i] = tempVal; //bug, cannot assign to element of array directly
+              //Bk - end
+              Pbp[i] = Pbp[i] + v2[i];
+            end;
+          end;
+        end;
+      end else begin
+        Sbp[i] = Budg2Calc2(accstr,objs,RepSpec.CurncyCode,RepSpec.FirstAcc,budsdTmp,budedTmp,RepSpec.basecurncy,RepSpec.IncDaughter,0);
+        if (skipf==false) then begin
+          t = BlankVal;
+          //Bk - start KB 03.06.2019
+          tempVal = Pbp[i];
+          GetAccTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,RepSpec.IncDaughter,t,tempVal);
+          Pbp[i] = tempVal; //bug, cannot assign to element of array directly
+          //Bk - end
+        end;
+      end;
+    end;
+    if (RepSpec.Comparison==4) then begin
+      if (skipf==false) then begin
+// OK, and this was agreed with someone else I assume?
+/*      
+Krister says we have that already when comapring preious year 
+        pysd = AddYear(RepSpec.sStartDate,-1);
+        pyed = AddYear(RepSpec.sEndDate,-1);
+        if ((GetMonth(pyed)==2) and (GetDay(pyed)==28)) then begin
+          if (IsLeapYear(GetYear(pyed))) then begin
+            pyed = AddDay(pyed,-GetDay(pyed) + 29);
+          end;
+        end;                  
+*/  
+        mode = 0;
+        if (GetDay(RepSpec.sStartDate)==1) then begin
+          if (GetDay(RepSpec.sEndDate)==DaysInMonth(GetYear(RepSpec.sEndDate),GetMonth(RepSpec.sEndDate))) then begin
+            mode = 1;
+          end;
+        end;
+        switch (mode) begin
+          case 0:
+            pyed = AddDay(RepSpec.sStartDate,-1);
+            diff = DateDiff(RepSpec.sEndDate,RepSpec.sStartDate);
+            pysd = AddDay(pyed,-diff);
+          case 1:
+            pyed = AddDay(RepSpec.sStartDate,-1);
+            pyed.day = DaysInMonth(GetYear(pyed),GetMonth(pyed));
+            diff = DateGetIntMonth(RepSpec.sEndDate) - DateGetIntMonth(RepSpec.sStartDate);
+            pysd = AddMonth(pyed,-diff);
+            pysd.day = 1;
+        end;
+
+        GetAccDCTurnover(accstr,objs,pysd,pyed,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,blankval,blankval,dSb[i],cSb[i]);
+        GetAccDCTurnover(accstr,objs,RepSpec.sStartDate,RepSpec.sEndDate,ObjBalr,RepSpec.CurncyCode,RepSpec.SimVerf,RepSpec.basecurncy,
+                         RepSpec.IncDaughter,blankval,blankval,dPb[i],cPb[i]);
+        AddupRU(DCSide,Sbp[i],Pbp[i],dSb[i],dPb[i],cSb[i],cPb[i]);
+      end;
+    end;
+    if (RepSpec.Comparison==-1) then begin
+      if (RepSpec.flags[11]==4) or (true) then begin//even if obj bal is not there Budget can be
+        SetPLColBal(RepSpec,RepSpec.flags[11],accstr,objs,ObjBalr,Sbp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[12]==4) or (true) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[12],accstr,objs,ObjBalr,Pbp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[13]==4) or (true) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[13],accstr,objs,ObjBalr,Ebp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[14]==4) or (true) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[14],accstr,objs,ObjBalr,S4bp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[15]==4) or (true) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[15],accstr,objs,ObjBalr,S5bp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      if (RepSpec.flags[16]==4) or (true) then begin
+        SetPLColBal(RepSpec,RepSpec.flags[16],accstr,objs,ObjBalr,S6bp[i],DCSide,AccumStartDate,budsdTmp,budedTmp);
+      end;
+      SetPLSumups(RepSpec.flags[13],Sbp[i],Pbp[i],Ebp[i]);
+      SetPLSumups(RepSpec.flags[16],S4bp[i],S5bp[i],S6bp[i]);
+    end;
+  end;
+  if ((nonblank(RepSpec.f6)) and (SetInSet(RepSpec.f6,objs)==false)) then begin //and (blank(objs))) then begin
+    theobj = RepSpec.f6;
+    if (nonblank(objs)) then begin
+      theobj = theobj & "," & objs;
+    end;
+    if (MonthAccRuPerBalBL(RepSpec,PLf,accstr,theobj,oS3b1,oPb1,oEb1,oS4b1,oS5b1,oS6b1,DCSide,resUseAccum,AccumStartDate,budsdTmp,budedTmp)) then begin
+    end;
+/*
+    Sbp[i] = Sbp[i] + oS3b1[i];
+    Pbp[i] = Pbp[i] + oPb1[i];
+    Ebp[i] = Ebp[i] + oEb1[i];
+    S4bp[i] = S4bp[i] + oS4b1;
+    S5bp[i] = S5bp[i] + oS5b1;
+    S6bp[i] = S6bp[i] + oS6b1;
+*/
+    Sbp[i] = Sbp[i] - oS3b1[i];
+    Pbp[i] = Pbp[i] - oPb1[i];
+    Ebp[i] = Ebp[i] - oEb1[i];
+    S4bp[i] = S4bp[i] - oS4b1[i];
+    S5bp[i] = S5bp[i] - oS5b1[i];
+    S6bp[i] = S6bp[i] - oS6b1[i];
+  end;
+  sd = AddDay(ed,1); //Bk KB 21.12.2017 global loop ends
+  end; //Bk KB 21.12.2017 global loop ends
+  RepSpec.sStartDate = origSd;
+  RepSpec.sEndDate = origEd;
+  //Bk end
+  MonthAccRuPerBalBL = res;
+  RETURN;
+END;
+
+global
+function Boolean MonthAccObjTypePerBal(record RcVc RepSpec,Boolean PLf,string accstr,string objs,var array val Sbp,var array val Pbp,var array val Ebp,
+                                  var array val S4bp,var array val S5bp,var array val S6bp,Integer DCSide,Boolean resUseAccum,Date AccumStartDate,
+                                  Date budsd,Date buded)
+BEGIN
+  Boolean res;
+  record ObjVc Objr;
+  record ObjBalVc ObjBalr;
+  Boolean TrHs,Objbals;
+  array val lSbp,lPbp,lEbp,lS4bp,lS5bp,lS6bp;
+  integer monthCnt,i; //Bk KB 21.12.2017
+
+  monthCnt = GetMonthDiff(RepSpec.sStartDate,RepSpec.sEndDate);//Bk KB 21.12.2017
+
+  Objr.OTCode = RepSpec.ObjType;
+  TrHs = true;
+  while (LoopKey("OTCode",Objr,1,TrHs)) begin
+    if (Objr.OTCode!=RepSpec.ObjType) then begin 
+      TrHs = false;
+    end;
+    if (TrHs) then begin
+      if ((blank(objs)) or (Objr.Code==objs)) then begin
+        ObjBalr.AccNumber = accstr;
+        ObjBalr.Object = Objr.Code;
+        Objbals = GetObjBal(accstr,Objr.Code,ObjBalr);
+        if (Objbals) then begin
+          res = MonthAccRuPerBalBL(RepSpec,PLf,accstr,Objr.Code,lSbp,lPbp,lEbp,lS4bp,lS5bp,lS6bp,DCSide,resUseAccum,AccumStartDate,budsd,buded);
+          //Bk KB 21.12.2017
+          for (i=0;i<monthCnt;i=i+1) begin //global loop starts
+            Sbp[i] = Sbp[i] + lSbp[i];
+            Pbp[i] = Pbp[i] + lPbp[i];
+            Ebp[i] = Ebp[i] + lEbp[i];
+            S4bp[i] = S4bp[i] + lS4bp[i];
+            S5bp[i] = S5bp[i] + lS5bp[i];
+            S6bp[i] = S6bp[i] + lS6bp[i];
+          end;
+          //Bk end
+        end;
+      end;
+    end;
+  end;  
+  MonthAccObjTypePerBal = res;
+  RETURN;
+END;
+
+function Boolean GetNextSep(string aost,var Integer np,var string anitem)
+BEGIN
+  Boolean TrHs,res;
+  string 255 ost;
+  string 255 nitem;
+  string 1 nc;
+
+  ost = aost;
+  nitem = "";
+  TrHs = true;
+  while (TrHs) begin 
+    if (np>len(ost)) then begin TrHs = false; end;   
+    if (TrHs) then begin
+      nc = Mid(ost,np,1);
+      if ((nc>=chr(48)) and (nc<=chr(57))) then begin
+        TrHs = false;
+      end;
+      if (TrHs) then begin
+        nitem = nitem & nc;
+        np = np + 1;    
+      end;      
+    end;  
+  end;  
+  if (blank(nitem)) then begin
+    res = false;
+  end else begin
+    res = true;
+  end; 
+  anitem = nitem;  
+  GetNextSep = res; 
+  RETURN;  
+END;
+
+function Boolean GetNextItem(string aost,var Integer np,var string anitem)
+BEGIN
+  string 255 ost;
+  string 255 nitem;
+  string 1 nc;
+  Boolean res,TrHs;
+  
+  ost = aost;
+  nitem = "";
+  
+  TrHs = true;
+  while (TrHs) begin
+    if (np>len(ost)) then begin TrHs = false; end;
+    if (TrHs) then begin
+      nc = Mid(ost,np,1);
+      if ((nc<chr(48)) or (nc>chr(57))) then begin
+        TrHs = false;
+      end;
+      if (TrHs) then begin
+        nitem = nitem & nc;
+        np = np + 1;    
+      end;
+    end;
+  end;  
+  if nonblank(nitem) then begin
+    res = true;
+  end else begin
+    res = false;
+  end;
+  anitem = nitem;
+  GetNextItem = res;
+  RETURN;
+END;
+
+function Boolean GetNextItem2(string aost,var Integer np,var string anitem)
+BEGIN
+  string 255 ost;
+  string 255 nitem;
+  string 1 nc;
+  Boolean res,TrHs;
+  
+  ost = aost;
+  nitem = "";
+  
+  TrHs = true;
+  while (TrHs) begin
+    if (np>len(ost)) then begin TrHs = false; end;
+    if (TrHs) then begin
+      nc = Mid(ost,np,1);
+      TrHs = false;
+      if ((asc(nc)>=asc("0")) and (asc(nc)<=asc("9"))) then begin
+        TrHs = true;
+      end;  
+      if ((asc(nc)>=asc("a")) and (asc(nc)<=asc("z"))) then begin
+        TrHs = true;
+      end;
+      if ((asc(nc)>=asc("A")) and (asc(nc)<=asc("Z"))) then begin
+        TrHs = true;
+      end;      
+      if (nc=="_") or (nc=="/") or (nc=="-") then begin
+        TrHs = true;
+      end;      
+      if (TrHs) then begin
+        nitem = nitem & nc;
+        np = np + 1;    
+      end;
+    end;
+  end;    
+  if nonblank(nitem) then begin
+    res = true;
+  end else begin
+    res = false;
+  end;
+  anitem = nitem;
+  GetNextItem2 = res;
+  RETURN;
+END;
+
+global
+procedure MonthAGrSumLine2(record RcVc RepSpec,Integer c1,string t1,string t2,string extracode,
+                     array val Sp1,array val Sp2,array val Sp3,array val Sp4,array val Sp5,array val Sp6,
+                     Boolean negf,val goms,Boolean PLf,Boolean resUseAccum,string dblstr,LongInt agrid,
+                     Boolean usedf,Boolean printf,Boolean comparef)
+BEGIN
+  val v,cppr;
+  string 5 tstr;
+  Integer ValForm;
+  Boolean prntdf,skipf;
+  //Bk - start KB
+  integer monthCnt,i; //Bk KB 22.12.2017
+  val s1tot,s2tot,s3tot,s4tot,s5tot,s6tot;
+  array val s1,s2,s3,s4,s5,s6;
+  array val os1,os2,os3,os4,os5,os6;
+  integer monthColStep,monthColPos,currMonth,budPosOffset; //Bk + KB 20.12.2017
+  val os1tot,os2tot,os3tot,os4tot,os5tot,os6tot;
+  //Bk - end
+
+  monthCnt = GetMonthDiff(RepSpec.sStartDate,RepSpec.sEndDate);
+  //Bk end;
+  if (printf==false) then begin
+    goto LAGrSumLine;
+  end;
+  skipf = true;
+  if (usedf) then begin
+    skipf = false;
+  end;
+  switch (RepSpec.AccSpec) begin
+    case 4:
+//      if (Sp3!=0) then begin
+      if (PLf) then begin
+        if (SomeArrNotZero1(Sp1,monthCnt)) then begin
+          skipf = false;
+        end;
+      end else begin
+        if (SomeArrNotZero1(Sp2,monthCnt)) then begin
+          skipf = false;
+        end;
+      end;
+    case 1:
+// If you comment this line in and next one out, it means all accounts that once had a saldo but no longer has, will be printed. Not so nice.
+// If an account has nothing in start balance, 100 in and 100 out during period (zero) and zero in ending balance, it won't print either
+// But commenting this line in is not the solution to that problem. It has to be tested someplace else.
+//      if ((nonblank(Sp1)) or (nonblank(Sp2)) or (nonblank(Sp3)) or (nonblank(Sp4)) or (nonblank(Sp5)) or (nonblank(Sp6))) then begin
+      //if ((Sp1!=0) or (Sp2!=0) or (Sp3!=0) or (Sp4!=0) or (Sp5!=0) or (Sp6!=0)) then begin //Bk KB 22.12.2017
+      if (SomeArrNotZero6(Sp1,Sp2,Sp3,Sp4,Sp5,Sp6,monthCnt)) then begin //Bk KB 22.12.2017
+        skipf = false;
+      end;
+    otherwise
+      skipf = false;
+  end;
+  if (skipf) then begin
+    goto LAGrSumLine;
+  end;
+  ValForm = M4Val;
+  if (RepSpec.Notation==0) then begin
+    ValForm = M4Val;
+  end;  
+  if (RepSpec.Notation==1) then begin
+    ValForm = M4TVal;
+  end;  
+  if (RepSpec.Notation==2) then begin
+    ValForm = M4MVal;
+  end;  
+  if (RepSpec.Notation==3) then begin
+    ValForm = M4Val;
+  end;  
+  if (RepSpec.Notation==4) then begin
+    ValForm = M40Val;
+  end;  
+  //Bk - start KB 22.12.2017, 03.06.2019
+  for(i=0;i<monthCnt;i=i+1) begin
+    s1[i] = Sp1[i];
+    s2[i] = Sp2[i];
+    s3[i] = Sp3[i];
+    s4[i] = Sp4[i];
+    s5[i] = Sp5[i];
+    s6[i] = Sp6[i];
+    if (negf) then begin
+      s1[i] = -s1[i];
+      s2[i] = -s2[i];
+      s3[i] = -s3[i];
+      s4[i] = -s4[i];
+      s5[i] = -s5[i];
+      s6[i] = -s6[i];
+    end;
+    if (RepSpec.flags[19]!=0) then begin
+      if (blank(s1[i])) then begin s1[i] = 0; end;
+      if (blank(s2[i])) then begin s2[i] = 0; end;
+      if (blank(s3[i])) then begin s3[i] = 0; end;
+      if (blank(s4[i])) then begin s4[i] = 0; end;
+      if (blank(s5[i])) then begin s5[i] = 0; end;
+      if (blank(s6[i])) then begin s6[i] = 0; end;
+    end;
+    s1tot = s1tot + s1[i];
+    s2tot = s2tot + s2[i];
+    s3tot = s3tot + s3[i];
+    s4tot = s4tot + s4[i];
+    s5tot = s5tot + s5[i];
+    s6tot = s6tot + s6[i];
+  end;
+  //Bk - end
+  StartFormat(15);
+  if ((RepSpec.repname!="ConsResRn") and (RepSpec.repname!="ConsBalRn")) then begin
+    if (nonblank(dblstr)) then begin
+      if (Left(RepSpec.critname,7)=="ConsRes") then begin
+        if ((Left(dblstr,10)=="DblResCons")) then begin
+          OutStringID(c1,dblstr,t1,false,agrid);
+        end else begin
+          OutStringID(c1,"DblConsResRClass",t1,false,"" & RepSpec.shortname & ":" & agrid);
+        end;
+        prntdf = true;
+      end;
+      if (RepSpec.critname=="ConsBalRClass") then begin
+        OutStringID(c1,"DblConsBalRClass",t1,false,"" & RepSpec.shortname & ":" & agrid);
+        prntdf = true;
+      end;
+    end else begin
+      if (RepSpec.Media!=mtFile and RepSpec.Media!=mtExcel) then begin
+        OutString(c1,0,"",false);  
+      end;
+    end;
+    if (prntdf==false) then begin
+      OutStringID(c1,dblstr,t1,false,RepSpec.flags[29]);//29 id company ID    
+    end;
+  end else begin
+    if (nonblank(dblstr)) then begin
+      if (RepSpec.critname=="ConsResRClass") then begin
+        OutString(c1,"DblNLSpec",t1,false);
+        prntdf = true;
+      end;
+      if (RepSpec.critname=="ConsBalRClass") then begin
+        OutString(c1,"DblNLSpec",t1,false);
+        prntdf = true;
+      end;
+    end;
+    if (prntdf==false) then begin
+      OutStringID(c1,dblstr,t1,false,RepSpec.flags[29]);//29 id company ID
+    end;
+  end;
+  if ((nonblank(t2)) or (RepSpec.Media==mtFile or RepSpec.Media==mtExcel)) then begin
+    OutString(2,0,t2,false);
+  end;  
+  prntdf = false;
+  if (PLf==false) then begin
+    //Bk - start KB 03.06.2019
+    for(i=0;i<monthCnt;i=i+1) begin //Bk KB 22.12.2017
+      os1[i] = s1[i];
+      os2[i] = s2[i];
+      os3[i] = s3[i];
+      os4[i] = s4[i];
+      os5[i] = s5[i];
+      os6[i] = s6[i];
+    end; //Bk KB 22.12.2017
+    if ((RepSpec.Comparison==2) or (RepSpec.Comparison==3)) then begin
+      prntdf = true;
+      cppr = blankval;
+      OutVal(3,0,s1[i],ValForm,true);
+      OutVal(4,0,s2[i],ValForm,true);
+      if (comparef) then begin
+        if (RepSpec.flags[1]==1) then begin
+          if (os3!=0) then begin
+            v = os2[i] - os3[i];
+            v = v/os3[i];
+            cppr = v * 100;
+          end;
+          OutVal(5,0,cppr,M4Prcnt,true);
+        end else begin
+          OutVal(5,0,s3[i],ValForm,true);
+        end;
+      end;
+    end;
+    //Bk - end
+    /*if (RepSpec.Comparison==4) then begin
+      prntdf = true;
+      tstr = "";
+      OutString(3,0,tstr,true);
+      OutVal(4,0,s3,ValForm,true);
+      if (comparef) then begin
+        OutVal(5,0,s1,ValForm,true);
+      end;
+    end;*/
+    /*if (RepSpec.Comparison==5) then begin
+      prntdf = true;
+      OutString(3,0,extracode,true);
+      OutVal(4,0,s1,ValForm,true);
+      if (comparef) then begin
+        OutVal(5,0,s3,ValForm,true);
+      end;
+    end;*/
+    /*if (RepSpec.Comparison==-1) then begin// HAL Defined 
+      prntdf = true;
+      if (RepSpec.flags[20]>0) then begin
+        OutVal(3,0,s1,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>1) then begin
+        OutVal(4,0,s2,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>2) then begin
+        OutVal(5,0,s3,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>3) then begin
+        OutVal(7,0,s4,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>4) then begin
+        OutVal(8,0,s5,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>5) then begin 
+        OutVal(9,0,s6,ValForm,true);
+      end;
+    end;*/
+    if (prntdf==false) then begin
+      //Bk KB 27.12.2017
+      OutVal(3,0,s1[0],ValForm,true);
+      monthColPos = 170;
+      monthColStep = 25;
+      for(currMonth=0;currMonth<monthCnt;currMonth=currMonth+1) begin
+        OutVal(monthColPos,0,s2[currMonth],ValForm,true);
+        monthColPos = monthColPos + monthColStep;
+      end;
+      //Bk end
+      if (comparef) then begin
+        OutVal(5,0,s3[monthCnt-1],ValForm,true); //Bk KB 27.12.2017
+      end;
+    end;
+  end;
+  if (PLf==true) then begin
+    for(i=0;i<monthCnt;i=i+1) begin //Bk KB 22.12.2017
+      os1[i] = s1[i];
+      os2[i] = s2[i];
+      os3[i] = s3[i];
+      os4[i] = s4[i];
+      os5[i] = s5[i];
+      os6[i] = s6[i];
+      if (RepSpec.Notation==3) then begin
+        s1[i] = s1[i]/goms;
+        s2[i] = s2[i]/goms;
+        if (RepSpec.flags[13]!=11) then begin
+          s3[i] = s3[i]/goms;
+        end;  
+        s4[i] = s4[i]/goms;
+        s5[i] = s5[i]/goms;
+        if (RepSpec.flags[16]!=13) then begin
+          s6[i] = s6[i]/goms;
+        end;  
+      end;
+      if ((s1[i]==0) and (RepSpec.Comparison!=0)) then begin
+        s1[i] = blankval;
+      end;  
+      //Bk - start 03.06.2019
+      os1tot = os1tot + os1[i];
+      os2tot = os2tot + os2[i];
+      os3tot = os3tot + os3[i];
+      os4tot = os4tot + os4[i];
+      os5tot = os5tot + os5[i];
+      os6tot = os6tot + os6[i];
+      //Bk - end
+    end; //Bk KB 22.12.2017
+    if (RepSpec.Comparison==0) then begin
+//      if (resUseAccum==true) then begin//I don't think this is needed here at all, in January number of columns is diffrent then in february why?
+        monthColPos = 170;
+        monthColStep = 25;
+        for(currMonth=0;currMonth<monthCnt;currMonth=currMonth+1) begin
+          OutVal(4,0,s1[i],ValForm,true);
+          monthColPos = monthColPos + monthColStep;
+//      end;  
+          OutVal(monthColPos,0,s2[currMonth],ValForm,true);
+        end;
+    end;
+    /*if (RepSpec.Comparison==1) then begin
+      cppr = blankval;
+      if (true) then begin
+        OutVal(3,0,s2,ValForm,true);
+        OutVal(4,0,s1,ValForm,true);
+      end else begin
+        OutVal(3,0,s1,ValForm,true);
+        OutVal(4,0,s2,ValForm,true);
+      end;
+      if (comparef) then begin
+        switch (RepSpec.flags[1]) begin
+          case 0:
+            v = os2 - os1;
+            OutVal(5,0,v,ValForm,true);
+          case 1:
+            if (os1!=0) then begin
+              v = os2 - os1;
+              v = v/os1;        
+              cppr = v*100;        
+            end;
+            OutVal(5,0,cppr,M4Prcnt,true);
+          case 2:
+            v = os2 + os1;
+            OutVal(5,0,v,ValForm,true);
+        end;
+      end;
+    end;*/
+    /*if (RepSpec.Comparison==4) then begin
+      OutString(200,0,extracode,false); //I know, text rightaligned, but I didn't see any other way out 
+      if (HasLocalization("FIN")) then begin
+        OutVal(3,0,s2,ValForm,true);
+        OutVal(4,0,s1,ValForm,true);
+      end else begin
+        OutVal(3,0,s1,ValForm,true);
+        OutVal(4,0,s2,ValForm,true);
+      end;
+      if (comparef) then begin
+        switch (RepSpec.flags[1]) begin
+          case 0:
+            v = s2 - s1;
+            OutVal(5,0,v,ValForm,true);
+          case 1:
+            if (os1!=0) then begin
+              v = s2 - s1;//-s1
+              v = v/os1;        
+              cppr = v * 100;
+            end;
+            OutVal(5,0,cppr,M4Prcnt,true);
+          case 2:
+            v = s2 + s1;
+            OutVal(5,0,v,ValForm,true);
+        end;
+      end;
+    end;*/
+    //Bk - start KB 03.06.2019
+    if ((RepSpec.Comparison==2) or (RepSpec.Comparison==3)) then begin
+      cppr = blankval;
+      monthColPos = 90;
+      monthColStep = 30;
+      budPosOffset = 12;
+      if (RepSpec.Media==mtFile or RepSpec.Media==mtExcel) then begin //to properly print to excel
+        OutString(0,0,"",false);
+      end;
+      for(i=0;i<monthCnt;i=i+1) begin
+        OutVal(monthColPos,0,s1[i],ValForm,true);
+        OutVal(monthColPos + budPosOffset,0,s2[i],ValForm,true);
+        //not yet implemented to display comparison for each month
+        /*
+        if (comparef) then begin
+          switch (RepSpec.flags[1]) begin
+            case 0:
+              v = os2[i] - os1[i];
+              OutVal(5,0,v,ValForm,true);
+            case 1:
+              if (os1[i]!=0) then begin
+                v = os2[i] - os1[i];//-os1
+                v = v/os1[i];        
+                cppr = v * 100;
+              end;
+              OutVal(5,0,cppr,M4Prcnt,true);
+            case 2:
+              v = os2[i] + os1[i];
+              OutVal(5,0,v,ValForm,true);
+          end;
+        end;
+        */
+        monthColPos = monthColPos + monthColStep;
+      end;
+      OutVal(480 - 30,0,os1tot,ValForm,true);
+      OutVal(480 - 15,0,os2tot,ValForm,true);
+      if (comparef) then begin
+        switch (RepSpec.flags[1]) begin
+          case 0:
+            v = os2tot - os1tot;
+            OutVal(5,0,v,ValForm,true);
+          case 1:
+            if (os1tot!=0) then begin
+              v = os2tot - os1tot;//-os1
+              v = v/os1tot;        
+              cppr = v * 100;
+            end;
+            OutVal(5,0,cppr,M4Prcnt,true);
+          case 2:
+            v = os2tot + os1tot;
+            OutVal(5,0,v,ValForm,true);
+        end;
+      end;
+    end;
+    //Bk - end
+    /*if (RepSpec.Comparison==-1) then begin// HAL Defined 
+      if (RepSpec.flags[20]>0) then begin
+        OutVal(3,0,s1,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>1) then begin
+        OutVal(4,0,s2,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>2) then begin
+//        OutVal(5,0,s3,M4Val,true);
+        if (RepSpec.flags[1]==1) then begin
+          if (s2!=0) then begin
+            v = s1;
+            v = v/s2;        
+            cppr = v * 100;
+          end;
+          OutVal(5,0,cppr,M4Prcnt,true);
+        end else begin
+          OutVal(5,0,s2 - s1,ValForm,true);
+        end;
+      end;  
+      if (RepSpec.flags[20]>3) then begin
+        OutVal(7,0,s4,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>4) then begin
+        OutVal(8,0,s5,ValForm,true);
+      end;  
+      if (RepSpec.flags[20]>5) then begin
+//        OutVal(9,0,s6,M4Val,true);
+        if (RepSpec.flags[1]==1) then begin
+          if (s5!=0) then begin
+            v = s4;
+            v = v/s5;        
+            cppr = v * 100;
+          end;
+          OutVal(9,0,cppr,M4Prcnt,true);
+        end else begin
+          OutVal(9,0,s4 - s5,ValForm,true);
+        end;
+      end;  
+    end;*/
+  end;
+  EndFormat;
+LAGrSumLine:;  
+  RETURN;
+END;
+
+global
+procedure MonthAGrSumLineBL(record RcVc RepSpec,Integer c1,string t1,string t2,string extracode,
+                    array val Sp1,array val Sp2,array val Sp3,array val Sp4,array val Sp5,array val Sp6,
+                    Boolean negf,val goms,Boolean PLf,Boolean resUseAccum,string dblstr,LongInt agrid,
+                    Boolean usedf,Boolean printf)
+begin
+  MonthAGrSumLine2(RepSpec,c1,t1,t2,extracode,Sp1,Sp2,Sp3,Sp4,Sp5,Sp6,negf,goms,PLf,resUseAccum,dblstr,agrid,usedf,printf,true);
+  return;
+end;
+
+global
+procedure MonthSumBalRnVectors(string accstr,LongInt idkey,Boolean zerof,
+                          vector val S3ba,vector val Pba,vector val Eba,
+                          vector val S4ba,vector val S5ba,vector val S6ba,
+                          vector Boolean sumsv,
+                          Array record UserDefRepLinesVc aUserDefRepLinesr,Integer udrlcnt,integer monthCnt)
+begin
+  string 255 nitem;
+  string 5 nsep;
+  Integer np;
+  Boolean sepd,addflag;
+  LongInt idn;
+  integer i; //Bk KB 21.12.2017
+
+  if (zerof) then begin
+    for(i=0;i<monthCnt;i=i+1) begin //Bk KB 22.12.2017
+      PutValTo2DVec(0,i,idkey,S3ba);
+      PutValTo2DVec(0,i,idkey,S4ba);
+      PutValTo2DVec(0,i,idkey,S5ba);
+      PutValTo2DVec(0,i,idkey,S6ba);
+      PutValTo2DVec(0,i,idkey,Pba);
+      PutValTo2DVec(0,i,idkey,Eba);
+    end;
+    //Bk end
+  end;
+  np = 0;
+  sepd = GetNextSep(accstr,np,nsep);
+  while (GetNextItem(accstr,np,nitem)) begin
+    if (nsep=="-") then begin
+      addflag = false; 
+    end else begin
+      addflag = true;
+    end;  
+    sepd = GetNextSep(accstr,np,nsep);
+    idn = FirstInRange(nitem,10);
+    if (idn>=0) then begin
+      if (sumsv[idn]==false) then begin
+//        if (idn!=StringToLongInt(nitem)) then begin
+        if (idn!=idkey) then begin//? to stop never ending loop, but this data is not posible to enter any more
+          MonthCalcRsTypeSum(S3ba,Pba,Eba,S4ba,S5ba,S6ba,sumsv,aUserDefRepLinesr,udrlcnt,idn,monthCnt);
+        end;
+//        end;
+//        sumsv[idn] = true; //no calculation here
+      end;
+      for(i=0;i<monthCnt;i=i+1) begin //Bk KB 22.12.2017
+        if (addflag==true) then begin
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S3ba) + GetValFrom2DVec(i,idn,S3ba),i,idkey,S3ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S4ba) + GetValFrom2DVec(i,idn,S4ba),i,idkey,S4ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S5ba) + GetValFrom2DVec(i,idn,S5ba),i,idkey,S5ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S6ba) + GetValFrom2DVec(i,idn,S6ba),i,idkey,S6ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,Pba) + GetValFrom2DVec(i,idn,Pba),i,idkey,Pba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,Eba) + GetValFrom2DVec(i,idn,Eba),i,idkey,Eba);
+        end else begin
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S3ba) - GetValFrom2DVec(i,idn,S3ba),i,idkey,S3ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S4ba) - GetValFrom2DVec(i,idn,S4ba),i,idkey,S4ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S5ba) - GetValFrom2DVec(i,idn,S5ba),i,idkey,S5ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,S6ba) - GetValFrom2DVec(i,idn,S6ba),i,idkey,S6ba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,Pba) - GetValFrom2DVec(i,idn,Pba),i,idkey,Pba);
+          PutValTo2DVec(GetValFrom2DVec(i,idkey,Eba) - GetValFrom2DVec(i,idn,Eba),i,idkey,Eba);
+        end;
+      end;
+    end;
+  end;
+  return;    
+end;
