@@ -9,6 +9,8 @@ begin
   SourceFile("halcust\\Level0\\RActions",0);
   SourceFile("halcust\\Level0\\Tools",0); //Excellent Estonia 18.03.2021
   SourceFile("halcust\\Level0\\Reports",0); //Excellent Estonia 18.03.2021
+  SourceFile("halcust\\Level0\\WActions",0); //Excellent Estonia 29.03.2021
+  SourceFile("halcust\\Level0\\amainhal",0); //Excellent Estonia 29.03.2021
   SourceFile("halcust\\Maint",3);
   SourceFile("halcust\\Tools",3);
   SourceFile("halcust\\English",3);
