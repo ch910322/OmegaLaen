@@ -60,6 +60,27 @@ begin
   return;
 end;
 
+function val usedPrepaymentinIV(record IVVc IVr)
+begin
+	row IVVc IVrw;
+	integer i,rwcnt;
+	val res;
+	
+	if(IVr.OKFlag==1)then begin
+		rwcnt = matrowcnt(IVr);
+		for(i=0;i<rwcnt;i=i+1)begin
+			matrowget(IVr,i,IVrw);
+			if(IVrw.stp==kInvoiceRowTypePrepayment)then begin
+				res = res + IVrw.Sum;
+			end;
+		end;
+	end;
+	
+	usedPrepaymentinIV = res;
+return;
+end;
+
+
 global
 procedure FillInvoiceData(record IVVc IVr,var record RcVc RepSpec)
 begin
@@ -80,7 +101,7 @@ begin
   val ARSSumod,ARSsactod,ARSs0od,ARSs1od,ARSs16od,ARSs31od,ARSs61od,ARSs91od,ARSs121od,ARSs151od;
   val ARSOnAccBal,ARSOnAccBalb1;
   record SMVc CurTotalsr;
-  val sumbooked,sumnow,sumcurncy,sumdiff;
+  val sumbooked,sumnow,sumcurncy,sumdiff,usedprepay;
   Array val debbal;
   Integer debcnt;
   Array string 10 debaccs;
@@ -174,7 +195,8 @@ begin
   GetOnAccBalance(RepSpec,CUr.Code,CUr.CurncyCode,false,0,ARSOnAccBalB1,rval2,ARSOnAccBal,sumbooked,sumnow,sumcurncy,sumdiff,CurTotalsr,debaccs,debbal,debcnt);//ObjStr
   
   //openamount2 = ARSSumod + ARSOnAccBal;
-  openamount2 = ARSSumod;//ARSSumod already included ARSOnAccBal
+  usedprepay = usedPrepaymentinIV(IVr);
+  openamount2 = ARSSumod - usedprepay;//ARSSumod already included ARSOnAccBal
   
   topay3 = openamount2;
   topay3 = topay3 + abovehiddenbase + abovehiddenvat;
