@@ -12,6 +12,7 @@ external inner procedure GetMonthText(string,Date,var string);
 external function Boolean InvoiceHasHiddenLine(record IVVc);
 external inner procedure CustAged(record CUVc,Date,Date,Date,var val,var val,var val,var val,var val,var val,var val,var val,var val,var val,boolean);
 external inner procedure GetOnAccBalance(record RcVc,string,string,Boolean,Integer,var val,var val,var val,var val,var val,var val,var val,record SMVc,Array string,Array val,var Integer);
+external inner procedure OneARSFormOpenOnDate(record RcVc,record CUVc,Integer,var val,var Integer,var Integer);
 
 global
 function Boolean Ext_SkipInvoiceRow(record IVVc IVr,row IVVc IVrw,Integer i)
@@ -46,42 +47,6 @@ begin
 end;
 
 global
-function Boolean Ext_GetPDFInvoiceName(record IVVc IVr,var string fname) 
-begin
-  Boolean res;
-
-  res = true;
-  if (nonblank(IVr.OfficialSerNr)) then begin
-    fname = USetStr(1808) & StrReplace(IVr.OfficialSerNr,"/","") & ".pdf";
-  end else begin
-    fname = USetStr(1808) & IVr.SerNr & ".pdf";
-  end;
-  Ext_GetPDFInvoiceName = res;
-  return;
-end;
-
-function val usedPrepaymentinIV(record IVVc IVr)
-begin
-	row IVVc IVrw;
-	integer i,rwcnt;
-	val res;
-	
-	if(IVr.OKFlag==1)then begin
-		rwcnt = matrowcnt(IVr);
-		for(i=0;i<rwcnt;i=i+1)begin
-			matrowget(IVr,i,IVrw);
-			if(IVrw.stp==kInvoiceRowTypePrepayment)then begin
-				res = res + IVrw.Sum;
-			end;
-		end;
-	end;
-	
-	usedPrepaymentinIV = res;
-return;
-end;
-
-
-global
 procedure FillInvoiceData(record IVVc IVr,var record RcVc RepSpec)
 begin
   record CYBlock CompYear;
@@ -101,13 +66,14 @@ begin
   val ARSSumod,ARSsactod,ARSs0od,ARSs1od,ARSs16od,ARSs31od,ARSs61od,ARSs91od,ARSs121od,ARSs151od;
   val ARSOnAccBal,ARSOnAccBalb1;
   record SMVc CurTotalsr;
-  val sumbooked,sumnow,sumcurncy,sumdiff,usedprepay;
+  val sumbooked,sumnow,sumcurncy,sumdiff;
   Array val debbal;
-  Integer debcnt;
+  Integer debcnt,custcnt,invcnt;
   Array string 10 debaccs;
   val rval,rval2,tval;
   val openamount2,topay3;
   record CUVc CUr;
+  record RcVc RepSpec2;
 
   BlockLoad(CompYear);
 
@@ -191,12 +157,12 @@ begin
   LongDateToStr(IVr.PayDate,SetDateOrder(IVr.LangCode),tstr);
   RepSpec.f20 = tstr;
 
-  CustAged(CUr,td,bd,td,ARSSumod,ARSsactod,ARSs0od,ARSs1od,ARSs16od,ARSs31od,ARSs61od,ARSs91od,ARSs121od,ARSs151od,0);
-  GetOnAccBalance(RepSpec,CUr.Code,CUr.CurncyCode,false,0,ARSOnAccBalB1,rval2,ARSOnAccBal,sumbooked,sumnow,sumcurncy,sumdiff,CurTotalsr,debaccs,debbal,debcnt);//ObjStr
-  
+  //CustAged(CUr,td,bd,td,ARSSumod,ARSsactod,ARSs0od,ARSs1od,ARSs16od,ARSs31od,ARSs61od,ARSs91od,ARSs121od,ARSs151od,0);
+  //GetOnAccBalance(RepSpec,CUr.Code,CUr.CurncyCode,false,0,ARSOnAccBalB1,rval2,ARSOnAccBal,sumbooked,sumnow,sumcurncy,sumdiff,CurTotalsr,debaccs,debbal,debcnt);//ObjStr
+  RepSpec2.d1 = td;
+	OneARSFormOpenOnDate(RepSpec2,CUr,1,ARSSumod,custcnt,invcnt);//Used this function to calc user balance
   //openamount2 = ARSSumod + ARSOnAccBal;
-  usedprepay = usedPrepaymentinIV(IVr);
-  openamount2 = ARSSumod - usedprepay;//ARSSumod already included ARSOnAccBal
+  openamount2 = ARSSumod;//ARSSumod already included ARSOnAccBal
   
   topay3 = openamount2;
   topay3 = topay3 + abovehiddenbase + abovehiddenvat;
