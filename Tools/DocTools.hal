@@ -71,7 +71,7 @@ begin
   Integer debcnt,custcnt,invcnt;
   Array string 10 debaccs;
   val rval,rval2,tval;
-  val openamount2,topay3;
+  val openamount2,topay3,topay4;
   record CUVc CUr;
   record RcVc RepSpec2;
 
@@ -166,6 +166,7 @@ begin
   
   topay3 = openamount2;
   topay3 = topay3 + abovehiddenbase + abovehiddenvat;
+  topay4 = topay3;
   if (hiddenf) then begin
     topay3 = topay3 + GetCredManItemValue(IVr,CMb.InstalmentItem,true);
   end; 
@@ -179,6 +180,8 @@ begin
   RepSpec.ObjStr = DateToString(td,"DD.MM.YYYY");
   RepSpec.Stext = openamount2;
   RepSpec.FirstAcc = topay3;
+  RepSpec.LastAcc = topay4;
+  
 
   return;
 end;
