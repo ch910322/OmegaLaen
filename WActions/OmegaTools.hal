@@ -209,3 +209,9 @@ begin
   return;
 end;
 
+global
+function Boolean ShowCredManNrInvoiceJournal()
+begin
+  ShowCredManNrInvoiceJournal = true;
+  return;
+end;
