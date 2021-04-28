@@ -31,7 +31,7 @@ begin
   //CUST-BEGIN
   label = UserDefined("CUVc","UserStr5");
   if (nonblank(label)) then begin
-    RlCol(300,300,label,UserStr5,false);
+    RlColKey(300,300,label,UserStr5,false,UserStr5);
   end;
   //CUST-END
   if (HasJewelleryInterface) then begin
