@@ -258,3 +258,10 @@ begin
   Ext_MailTextRow = res;
   return;
 end;
+
+global
+function Boolean IsOmegaCustomer()
+begin
+  IsOmegaCustomer = true;
+  return;
+end;
