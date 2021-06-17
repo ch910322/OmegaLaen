@@ -545,7 +545,7 @@ LMailVcRecordCheck:;
   return;
 end;
 
-procedure TextAutoMailToEMailQue(record ConfAutoReplyVc ConfAutoReplyr,record EMailQueVc EMailQuep)
+procedure TextAutoMailToEMailQue1(record ConfAutoReplyVc ConfAutoReplyr,record EMailQueVc EMailQuep)
 begin
   string 255 tstr;
   Integer pos,textsize;
@@ -608,7 +608,7 @@ begin
   EMailQuer.QueTime = CurrentTime;
   EMailQuer.AutoSubmitted = 1;
   if (EMailQuer.HtmlFlag==0) then begin
-    TextAutoMailToEMailQue(ConfAutoReplyr,EMailQuer);
+    TextAutoMailToEMailQue1(ConfAutoReplyr,EMailQuer);
   end else begin
     AddHtmlRecordToHtmlRecord(ConfAutoReplyr,EMailQuer,true);
   end;
