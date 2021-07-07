@@ -208,10 +208,3 @@ begin
   ShowPartialBuyoutOptions = true;
   return;
 end;
-
-global
-function Boolean ShowCredManNrInvoiceJournal()
-begin
-  ShowCredManNrInvoiceJournal = true;
-  return;
-end;
