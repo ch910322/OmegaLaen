@@ -74,6 +74,8 @@ begin
   val openamount2,topay3,topay4;
   record CUVc CUr;
   record RcVc RepSpec2;
+  record IVVc origIVr;
+  longint credmannr;
 
   BlockLoad(CompYear);
 
@@ -83,7 +85,16 @@ begin
   GetHiddenInvoiceValues(IVr,abovehiddenbase,abovehiddenvat);
 
   RepSpec.sStartDate = CurrentDate;//F_DATUM
-  RepSpec.f8 = GetCredManNr(IVr.CustCredManNr);//F_NUMMER
+  credmannr = IVr.CustCredManNr;
+  if(IVr.CustCredManNr<0)then begin
+    if(IVr.CredInv>-1)then begin
+      origIVr.SerNr = IVr.CredInv;
+      if(readfirstmain(origIVr,1,true))then begin
+        credmannr = origIVr.CustCredManNr;
+      end;
+    end;
+  end;
+  RepSpec.f8 = GetCredManNr(credmannr);//F_NUMMER
   if (nonblank(IVr.OfficialSerNr)) then begin
     RepSpec.f9 = IVr.OfficialSerNr;
   end else begin
