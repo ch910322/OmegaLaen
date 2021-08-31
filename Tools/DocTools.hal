@@ -76,6 +76,7 @@ begin
   record RcVc RepSpec2;
   record IVVc origIVr;
   longint credmannr;
+  record ARVc ARr;
 
   BlockLoad(CompYear);
 
@@ -159,7 +160,7 @@ begin
       RepSpec.f15 = Userr.Job;
     end;
   end;
-  td = AddDay(IVr.InvDate,-1);
+  td = AddDay(IVr.InvDate,0);
   GetMonthText(IVr.LangCode,td,tstr);
   RepSpec.f17 = tstr & " " & GetDay(td);
   GetMonthText(IVr.LangCode,IVr.InvDate,tstr);
@@ -184,6 +185,22 @@ begin
   if (topay2<0) then begin
     topay2 = 0;
   end;
+  
+  ARr.InvoiceNr = IVr.SerNr;
+  if(readfirstmain(ARr,1,true))then begin
+    if(ARr.BookRVal!=IVr.Sum4)then begin
+      topay2 = (topay2 - (IVr.Sum4-ARr.BookRVal));
+      openamount2 = openamount2 - (IVr.Sum4-ARr.BookRVal);
+    end else begin
+      openamount2 = openamount2 - ARr.BookRVal;
+      topay2 = topay2 - ARr.BookRVal;
+    end;
+  end else begin
+      topay2 = topay2 - IVr.Sum4;
+      openamount2 = openamount2 - IVr.Sum4;
+  end;
+  
+  
   if (topay3<0) then begin
     topay3 = 0;
   end;
