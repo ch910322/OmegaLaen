@@ -190,7 +190,7 @@ begin
     if(ARr.BookRVal!=IVr.Sum4)then begin
       topay2 = topay2 - ARr.BookRVal;
       topay3 = topay3 - ARr.BookRVal;
-      openamount2 = openamount2 - ARr.BookRVal;
+      openamount2 = openamount2 - IVr.Sum4;
     end else begin
       openamount2 = openamount2 - ARr.BookRVal;
       topay2 = topay2 - ARr.BookRVal;
