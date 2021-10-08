@@ -210,6 +210,11 @@ begin
   if (topay3<0) then begin
     topay3 = 0;
   end;
+  if (topay4<0) then begin
+    topay4 = 0;
+  end;
+  
+  
   td = addday(td,-1);//Add one day to printout// Edit ************************** BPI Ukraine - KramarAlexandr - 03, 01 09 2021 y. at 12:55:50 PM
   RepSpec.ObjStr = DateToString(td,"DD.MM.YYYY");
   RepSpec.Stext = openamount2;
