@@ -1,0 +1,81 @@
+external function Boolean GetNextCustNr(var string);
+external procedure NextM4Number(string,var string);
+
+global
+updating function Boolean NewContactCUDsmRemote(record CUVc CUr,var record CUVc ContactCUr)
+BEGIN
+  record CUVc lCUr;
+  record ContactRelVc ContactRelr;
+  Integer wn,nwn,counter;
+  string 200 tstr;
+  Boolean res;
+  record SRBlock SRRec;
+  boolean restoresrs;
+  
+  blockload(SRRec);
+  restoresrs = true;
+  
+  if (blank(CUr.Code)) then begin
+    goto LNewContactCUDsmRemote;
+  end;
+  RecordNew(ContactCUr);
+  RecordNew(ContactRelr);
+  
+  NextM4Number(CUr.Code & ":",tstr);
+  lCUr.Code = tstr;
+  if(nonblank(tstr))then begin
+    tstr = firstinrange(tstr,20) & lastinrange(tstr,20);
+  end;
+  lCUr.Code = tstr;
+  while(readfirstmain(lCUr,1,true))begin
+    NextM4Number(tstr,tstr);
+    lCUr.Code = tstr;
+    counter = counter + 1;
+    if(counter>100)then begin
+      tstr = "";
+      goto lEnd;
+    end;
+  end;
+lEnd:;
+  if(blank(tstr) or tstr==CUr.Code or readfirstmain(lCUr,1,true))then begin
+    if (GetNextCustNr(tstr)) then begin
+      restoresrs = false;
+    end;
+  end;
+  ContactCUr.CustCat = "";
+  ContactCUr.Code = tstr;
+  ContactCUr.Name = USetStr(2294);
+  ContactCUr.InvAddr0 = CUr.InvAddr0;
+  ContactCUr.InvAddr1 = CUr.InvAddr1;
+  ContactCUr.InvAddr2 = CUr.InvAddr2;
+  ContactCUr.InvAddr3 = CUr.InvAddr3;
+  ContactCUr.InvAddr4 = CUr.InvAddr4;
+  ContactCUr.Phone = CUr.Phone;
+  ContactCUr.Fax = CUr.Fax;
+  ContactCUr.Department = CUr.Department;
+  ContactCUr.CUType = 0;
+  ContactCUr.VEType = 0;
+  ContactCUr.GuestType = 0;
+  ContactCUr.CustType = 1;
+  lCUr.Code = ContactCUr.Code;
+  if (ReadFirstMain(lCUr,1,true)==false) then begin
+    if (RecordStore(ContactCUr,false)) then begin end;
+    if(restoresrs)then begin
+      blockstore(SRRec);
+    end;
+    ContactRelr.CustCode = CUr.Code;
+    ContactRelr.CustName = CUr.Name;
+    ContactRelr.ContactCode = ContactCUr.Code;
+    ContactRelr.ContactName = ContactCUr.Name;
+    ContactRelr.ContactMobile = ContactCUr.Mobile;
+    ContactRelr.ContactPhone = ContactCUr.Phone;
+    ContactRelr.ContacteMail = ContactCUr.eMail;
+    ContactRelr.ContactTitle = ContactCUr.Title;
+    ContactRelr.JobTitle = ContactCUr.JobDesc;
+    if (RecordStore(ContactRelr,false)) then begin end;
+    res = true;
+  end;
+LNewContactCUDsmRemote:;  
+  NewContactCUDsmRemote = res;
+  RETURN;
+END;
