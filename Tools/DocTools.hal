@@ -52,7 +52,7 @@ begin
   record CYBlock CompYear;
   record CredManSetBlock CMb;
   val t,v,t1,t2,t3,t4;
-  val abovehiddenbase,abovehiddenvat,openamount,topay2;
+  val abovehiddenbase,abovehiddenvat,openamount,openamount3,topay2;
   string 255 tstr;
   string 255 credivno;
   record IVVc IVCreditr;
@@ -71,7 +71,7 @@ begin
   Integer debcnt,custcnt,invcnt;
   Array string 10 debaccs;
   val rval,rval2,tval;
-  val openamount2,topay3,topay4;
+  val openamount2,topay3,topay4,topay5;
   record CUVc CUr;
   record RcVc RepSpec2;
   record IVVc origIVr;
@@ -171,6 +171,10 @@ begin
 
   //CustAged(CUr,td,bd,td,ARSSumod,ARSsactod,ARSs0od,ARSs1od,ARSs16od,ARSs31od,ARSs61od,ARSs91od,ARSs121od,ARSs151od,0);
   //GetOnAccBalance(RepSpec,CUr.Code,CUr.CurncyCode,false,0,ARSOnAccBalB1,rval2,ARSOnAccBal,sumbooked,sumnow,sumcurncy,sumdiff,CurTotalsr,debaccs,debbal,debcnt);//ObjStr
+  RepSpec.d1 = addday(td,-1);
+	OneARSFormOpenOnDate(RepSpec,CUr,2,openamount3,custcnt,invcnt);//Used this function to calc user balance
+  topay5 = openamount3 + IVr.Sum4;
+  
   RepSpec.d1 = td;
 	OneARSFormOpenOnDate(RepSpec,CUr,2,ARSSumod,custcnt,invcnt);//Used this function to calc user balance
   //openamount2 = ARSSumod + ARSOnAccBal;
@@ -217,10 +221,9 @@ begin
   
   td = addday(td,-1);//Add one day to printout// Edit ************************** BPI Ukraine - KramarAlexandr - 03, 01 09 2021 y. at 12:55:50 PM
   RepSpec.ObjStr = DateToString(td,"DD.MM.YYYY");
-  RepSpec.Stext = openamount2;
+  RepSpec.Stext = openamount2 & ":" & openamount3;
   RepSpec.FirstAcc = topay3;
-  RepSpec.LastAcc = topay4;
-  
+  RepSpec.LastAcc = topay4 & ":" & topay5;
 
   return;
 end;
