@@ -1,11 +1,13 @@
 external outer function Boolean AllDocumentsSignedByUsCM2(record CredManVc);
 external outer function Boolean ContractHasHistory(record CredManVc);
+external outer function Boolean HasCredManChanges(record CredManVc);
 
 global
 updating function LongInt CredManVcRecordCheck(var record CredManVc CredManr,record CredManVc CredMan2r,LongInt stat,LongInt long4)
 BEGIN
   LongInt res;
   record AgreementDocVc ADr;
+  record TRGenBlock TRGenb;
 
   res = 0;
   
@@ -51,6 +53,19 @@ BEGIN
   end;
 
   res = inner.CredManVcRecordCheck(CredManr,CredMan2r,stat,long4);
+  
+  if(HasCredManChanges(CredManr))then begin
+    blockload(TRGenb);
+    if(TRGenb.CredManGenTrans==1)then begin
+      if(stat==1 and CredManr.OKFlag==1)then begin
+        messagebox(0,"Agreement has Changes, NL Transaction has to be manually adjusted");
+      end;
+      if(stat==2 and CredManr.OKFlag==1 and CredMan2r.OKFlag==0)then begin
+        messagebox(0,"Agreement has Changes, NL Transaction has to be manually adjusted");
+      end;
+    end;
+  
+  end;
   
 LCredManVcRecordCheck:;
   CredManVcRecordCheck = res;
